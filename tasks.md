@@ -8,10 +8,10 @@
 
 ## Phase 0. 프로젝트 셋업
 
-- [ ] Flutter 프로젝트 생성 (안드로이드+iOS 타겟) — verify: `flutter run` 정상 실행
-- [ ] 패키지 설치: `flutter_riverpod`, `drift`, `sqlite3_flutter_libs`, `flutter_local_notifications`, `flutter_colorpicker`, `intl` — verify: `flutter pub get` 성공
-- [ ] 기본 폴더 구조 설정 (data / domain / presentation 등) — verify: 빈 폴더 구조 커밋
-- [ ] Drift DB 연결 골격 작성 (빈 데이터베이스 클래스) — verify: 앱 실행 시 DB 파일 생성 확인
+- [x] Flutter 프로젝트 생성 (안드로이드+iOS 타겟) — verify: `flutter run` 정상 실행
+- [x] 패키지 설치: `flutter_riverpod`, `drift`, `sqlite3_flutter_libs`, `flutter_local_notifications`, `flutter_colorpicker`, `intl` — verify: `flutter pub get` 성공
+- [x] 기본 폴더 구조 설정 (data / domain / presentation 등) — verify: 빈 폴더 구조 커밋
+- [x] Drift DB 연결 골격 작성 (빈 데이터베이스 클래스) — verify: 앱 실행 시 DB 파일 생성 확인
 
 ---
 
