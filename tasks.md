@@ -19,15 +19,15 @@
 
 `techspec.md` 5번(데이터 모델 설계 원칙) 기준.
 
-- [ ] `Blocks` 테이블 정의 (타임블록, 1단계 자기참조) — verify: CRUD 단위 테스트 통과
-- [ ] `ChecklistItems` 테이블 정의 (무제한 자기참조 + 블록 연결) — verify: 3단계 중첩 생성/조회 테스트
-- [ ] `Tags`, `BlockTags`(N:M) 테이블 정의 — verify: 태그 추가/조회 테스트
-- [ ] `TimerSessions` 테이블 정의 — verify: 세션 시작/종료 기록 테스트
-- [ ] `RecurrenceRules` 테이블 정의 — verify: 규칙 생성 테스트
-- [ ] `Templates`, `TemplateBlocks` 테이블 정의 — verify: 템플릿 저장/조회 테스트
-- [ ] `DeadlineTasks` 테이블 정의 — verify: 마감일 기준 정렬 쿼리 테스트
-- [ ] `MoodLogs` 테이블 정의 — verify: 날짜별 단일 레코드 제약 테스트
-- [ ] DB 마이그레이션/버전 관리 설정 — verify: 스키마 변경 시 마이그레이션 통과
+- [x] `Blocks` 테이블 정의 (타임블록, 1단계 자기참조) — verify: CRUD 단위 테스트 통과
+- [x] `ChecklistItems` 테이블 정의 (무제한 자기참조 + 블록 연결) — verify: 3단계 중첩 생성/조회 테스트
+- [x] `Tags`, `BlockTags`(N:M) 테이블 정의 — verify: 태그 추가/조회 테스트
+- [x] `TimerSessions` 테이블 정의 — verify: 세션 시작/종료 기록 테스트
+- [x] `RecurrenceRules` 테이블 정의 — verify: 규칙 생성 테스트
+- [x] `Templates`, `TemplateBlocks` 테이블 정의 — verify: 템플릿 저장/조회 테스트
+- [x] `DeadlineTasks` 테이블 정의 — verify: 마감일 기준 정렬 쿼리 테스트
+- [x] `MoodLogs` 테이블 정의 — verify: 날짜별 단일 레코드 제약 테스트
+- [x] DB 마이그레이션/버전 관리 설정 — verify: 스키마 변경 시 마이그레이션 통과
 
 ---
 
