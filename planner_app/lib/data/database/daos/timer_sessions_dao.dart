@@ -25,4 +25,18 @@ class TimerSessionsDao extends DatabaseAccessor<AppDatabase>
             ..where((s) => s.blockId.equals(blockId))
             ..orderBy([(s) => OrderingTerm.asc(s.startedAt)]))
           .get();
+
+  /// All timer sessions (for attendance / stats calculation).
+  Future<List<TimerSession>> getAllSessions() => select(timerSessions).get();
+
+  /// Streams timer sessions whose startedAt falls on the given date.
+  Stream<List<TimerSession>> watchSessionsForDay(DateTime date) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+    return (select(timerSessions)
+          ..where((s) =>
+              s.startedAt.isBiggerOrEqualValue(start) &
+              s.startedAt.isSmallerOrEqualValue(end)))
+        .watch();
+  }
 }

@@ -71,4 +71,24 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
       (update(blocks)..where((b) => b.id.equals(id))).write(
         BlocksCompanion(nextBlockId: Value(nextId)),
       );
+
+  /// Incomplete top-level blocks whose startTime is before [before].
+  /// Used for the "아직 끝내지 못한 일" section.
+  Stream<List<(Block, BlockTemplate)>> watchIncompletePastBlocks(
+      DateTime before) {
+    final query = select(blocks).join([
+      innerJoin(
+          blockTemplates, blockTemplates.id.equalsExp(blocks.blockTemplateId)),
+    ])
+      ..where(
+        blocks.isCompleted.equals(false) &
+            blocks.startTime.isSmallerThanValue(before) &
+            blocks.startTime.isNotNull() &
+            blocks.parentId.isNull(),
+      )
+      ..orderBy([OrderingTerm.desc(blocks.startTime)]);
+    return query.watch().map((rows) => rows
+        .map((r) => (r.readTable(blocks), r.readTable(blockTemplates)))
+        .toList());
+  }
 }

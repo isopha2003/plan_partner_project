@@ -45,6 +45,36 @@ final checklistItemsProvider =
       ref.watch(databaseProvider).checklistItemsDao.watchItemsByBlock(blockId),
 );
 
+/// All blocks in the DB (for attendance / stats calculation).
+final allBlocksProvider = FutureProvider<List<Block>>(
+  (ref) => ref.watch(databaseProvider).blocksDao.getAllBlocks(),
+);
+
+/// All timer sessions in the DB (for attendance / stats calculation).
+final allSessionsProvider = FutureProvider<List<TimerSession>>(
+  (ref) => ref.watch(databaseProvider).timerSessionsDao.getAllSessions(),
+);
+
+/// Timer sessions for a specific day (streamed).
+final sessionsForDayProvider =
+    StreamProvider.family<List<TimerSession>, DateTime>(
+  (ref, date) =>
+      ref.watch(databaseProvider).timerSessionsDao.watchSessionsForDay(date),
+);
+
+/// Incomplete top-level blocks from before today (streamed).
+final incompletePastBlocksProvider =
+    StreamProvider<List<(Block, BlockTemplate)>>(
+  (ref) {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    return ref
+        .watch(databaseProvider)
+        .blocksDao
+        .watchIncompletePastBlocks(todayStart);
+  },
+);
+
 /// Finds all overlapping pairs among block+template pairs.
 List<((Block, BlockTemplate), (Block, BlockTemplate))> findOverlaps(
     List<(Block, BlockTemplate)> pairs) {
