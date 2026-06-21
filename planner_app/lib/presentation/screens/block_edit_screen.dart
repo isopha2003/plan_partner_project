@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
+import 'package:planner_app/presentation/screens/habit_stack_screen.dart';
 
 /// Create or edit a time-block.
 /// Pass [block] to edit an existing one; omit (or pass null) to create new.
@@ -64,6 +65,17 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
       appBar: AppBar(
         title: Text(_isEditing ? '블록 편집' : '블록 생성'),
         actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.link),
+              tooltip: '습관 스태킹',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HabitStackScreen(root: widget.block!),
+                ),
+              ),
+            ),
           TextButton(
             onPressed: _save,
             child: const Text('저장'),
