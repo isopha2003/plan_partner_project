@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,12 +28,12 @@ class DayView extends ConsumerWidget {
   }
 }
 
-// ── Main layout ───────────────────────────────────────────────────────────────
+// ── Palette sheet size constants ──────────────────────────────────────────────
 
-/// Collapsed height fraction (drag handle ~24px + chip row ~40px + padding ~20px
-/// ≈ 84px; 84/800 ≈ 0.105 — use 0.13 for breathing room on small screens).
 const double _kCollapsedSize = 0.13;
 const double _kExpandedSize = 0.45;
+
+// ── Main layout ───────────────────────────────────────────────────────────────
 
 class _DayViewContent extends ConsumerStatefulWidget {
   final DateTime date;
@@ -46,16 +47,81 @@ class _DayViewContent extends ConsumerStatefulWidget {
 
 class _DayViewContentState extends ConsumerState<_DayViewContent> {
   final ScrollController _scrollController = ScrollController();
+
+  // Attach to the SingleChildScrollView to get its on-screen RenderBox for
+  // determining auto-scroll trigger zones.
+  final GlobalKey _scrollKey = GlobalKey();
+
   bool _isResizing = false;
+
+  // Auto-scroll timer fires at ~60 fps during resize.
+  // _autoScrollSpeed > 0 → scroll down, < 0 → scroll up, == 0 → stopped.
+  Timer? _autoScrollTimer;
+  double _autoScrollSpeed = 0;
 
   @override
   void dispose() {
+    _cancelAutoScroll();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onResizeStateChanged(bool resizing) {
+    if (!resizing) _cancelAutoScroll();
     setState(() => _isResizing = resizing);
+  }
+
+  // Called from _TimelineGridState on every drag-update with the pointer's
+  // global Y. Starts/adjusts/stops the auto-scroll timer based on how close
+  // the pointer is to the visible scroll area's edges.
+  void _handleResizeDragUpdate(double globalY) {
+    final box = _scrollKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final origin = box.localToGlobal(Offset.zero);
+    final scrollTop = origin.dy;
+    final scrollBottom = origin.dy + box.size.height;
+    const zone = 80.0; // px from edge that triggers auto-scroll
+
+    if (globalY >= scrollBottom - zone && globalY <= scrollBottom) {
+      // Bottom zone: speed increases linearly toward the edge (max 8 px/tick).
+      final depth = (globalY - (scrollBottom - zone)) / zone;
+      _autoScrollSpeed = (depth * 8.0).clamp(1.0, 8.0);
+    } else if (globalY >= scrollTop && globalY <= scrollTop + zone) {
+      // Top zone.
+      final depth = ((scrollTop + zone) - globalY) / zone;
+      _autoScrollSpeed = -(depth * 8.0).clamp(1.0, 8.0);
+    } else {
+      _autoScrollSpeed = 0;
+      _cancelAutoScroll();
+      return;
+    }
+
+    // Start the timer once; subsequent drag-update calls just update the speed.
+    _autoScrollTimer ??= Timer.periodic(
+      const Duration(milliseconds: 16),
+      (timer) {
+        if (!mounted || !_scrollController.hasClients) {
+          _cancelAutoScroll();
+          return;
+        }
+        final max = _scrollController.position.maxScrollExtent;
+        final next =
+            (_scrollController.offset + _autoScrollSpeed).clamp(0.0, max);
+        if (next == _scrollController.offset) {
+          // Already at max/min extent — nothing left to scroll.
+          _cancelAutoScroll();
+          return;
+        }
+        _scrollController.jumpTo(next);
+      },
+    );
+  }
+
+  void _cancelAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _autoScrollSpeed = 0;
   }
 
   @override
@@ -73,14 +139,16 @@ class _DayViewContentState extends ConsumerState<_DayViewContent> {
               OverlapWarningBanner(overlappingPairs: overlaps),
             Expanded(
               child: SingleChildScrollView(
+                key: _scrollKey,
                 controller: _scrollController,
-                // Lock scrolling while resizing so the scroll view
-                // cannot steal the vertical drag gesture.
+                // Lock user-gesture scrolling while resizing so the scroll
+                // view cannot compete for the vertical-drag gesture.
+                // The auto-scroll timer bypasses this via jumpTo().
                 physics: _isResizing
                     ? const NeverScrollableScrollPhysics()
                     : null,
-                // Reserve space at the bottom equal to the collapsed
-                // palette height so 24:00 is fully reachable by scroll.
+                // Reserve bottom padding = collapsed palette height so 24:00
+                // is fully reachable by scrolling.
                 padding: EdgeInsets.only(bottom: paletteH),
                 child: SizedBox(
                   height: DayView.hourHeight * 24 + 16,
@@ -94,6 +162,7 @@ class _DayViewContentState extends ConsumerState<_DayViewContent> {
                           date: widget.date,
                           pairs: widget.pairs,
                           onResizeStateChanged: _onResizeStateChanged,
+                          onResizeDragUpdate: _handleResizeDragUpdate,
                         ),
                       ),
                     ],
@@ -105,7 +174,7 @@ class _DayViewContentState extends ConsumerState<_DayViewContent> {
         ),
 
         // ── Palette overlay ──────────────────────────────────────────────
-        // Hidden while resizing so the block is not obscured by the sheet.
+        // Hidden while resizing so the dragged block is never occluded.
         IgnorePointer(
           ignoring: _isResizing,
           child: AnimatedOpacity(
@@ -153,11 +222,13 @@ class _TimelineGrid extends ConsumerStatefulWidget {
   final DateTime date;
   final List<(Block, BlockTemplate)> pairs;
   final ValueChanged<bool> onResizeStateChanged;
+  final ValueChanged<double> onResizeDragUpdate;
 
   const _TimelineGrid({
     required this.date,
     required this.pairs,
     required this.onResizeStateChanged,
+    required this.onResizeDragUpdate,
   });
 
   @override
@@ -173,7 +244,7 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
   bool _resizingTop = false;
   DateTime _resizeOrigStart = DateTime(0);
   DateTime _resizeOrigEnd = DateTime(0);
-  double _resizeDragStartY = 0; // global Y at drag start
+  double _resizeDragStartY = 0; // global Y captured at drag start
   double _resizeTotalDelta = 0; // = currentGlobalY − _resizeDragStartY
 
   @override
@@ -242,22 +313,29 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
     DateTime displayEnd = block.endTime!;
 
     if (isResizing) {
+      // Day boundaries: clamp ensures the block can never be dragged
+      // before 00:00 or past 24:00 of the current date.
+      final dayStart = DateTime(
+        widget.date.year, widget.date.month, widget.date.day);
+      final dayEnd = dayStart.add(const Duration(hours: 24));
+
       final deltaMin =
           (_resizeTotalDelta / DayView.hourHeight * 60).round();
       final snapped = (deltaMin / 15).round() * 15;
+
       if (_resizingTop) {
-        final candidate =
-            _resizeOrigStart.add(Duration(minutes: snapped));
-        if (candidate.isBefore(
+        final raw = _resizeOrigStart.add(Duration(minutes: snapped));
+        final clamped = raw.isBefore(dayStart) ? dayStart : raw;
+        if (clamped.isBefore(
             displayEnd.subtract(const Duration(minutes: 15)))) {
-          displayStart = candidate;
+          displayStart = clamped;
         }
       } else {
-        final candidate =
-            _resizeOrigEnd.add(Duration(minutes: snapped));
-        if (candidate
+        final raw = _resizeOrigEnd.add(Duration(minutes: snapped));
+        final clamped = raw.isAfter(dayEnd) ? dayEnd : raw;
+        if (clamped
             .isAfter(displayStart.add(const Duration(minutes: 15)))) {
-          displayEnd = candidate;
+          displayEnd = clamped;
         }
       }
     }
@@ -302,8 +380,6 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
               behavior: HitTestBehavior.opaque,
               onVerticalDragStart: (d) =>
                   _startResize(block, true, d.globalPosition.dy),
-              // Use absolute globalY so scroll-view gesture competition
-              // cannot corrupt the accumulated delta.
               onVerticalDragUpdate: (d) =>
                   _updateResize(d.globalPosition.dy),
               onVerticalDragEnd: (_) => _commitResize(block),
@@ -345,14 +421,21 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
     });
   }
 
-  // Recompute total delta as absolute distance from drag-start (not cumulative).
+  // Recompute total delta as an absolute distance from drag start so that
+  // any gesture noise or scroll-view competition cannot corrupt the value.
+  // Also notifies _DayViewContentState so it can drive auto-scroll.
   void _updateResize(double globalCurrentY) {
+    widget.onResizeDragUpdate(globalCurrentY);
     setState(() => _resizeTotalDelta = globalCurrentY - _resizeDragStartY);
   }
 
   void _commitResize(Block block) {
     widget.onResizeStateChanged(false);
     if (_resizingBlock == null) return;
+
+    final dayStart = DateTime(
+      widget.date.year, widget.date.month, widget.date.day);
+    final dayEnd = dayStart.add(const Duration(hours: 24));
 
     final deltaMin =
         (_resizeTotalDelta / DayView.hourHeight * 60).round();
@@ -362,18 +445,16 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
     DateTime newEnd = _resizeOrigEnd;
 
     if (_resizingTop) {
-      final candidate =
-          _resizeOrigStart.add(Duration(minutes: snapped));
-      if (candidate
-          .isBefore(newEnd.subtract(const Duration(minutes: 15)))) {
-        newStart = candidate;
+      final raw = _resizeOrigStart.add(Duration(minutes: snapped));
+      final clamped = raw.isBefore(dayStart) ? dayStart : raw;
+      if (clamped.isBefore(newEnd.subtract(const Duration(minutes: 15)))) {
+        newStart = clamped;
       }
     } else {
-      final candidate =
-          _resizeOrigEnd.add(Duration(minutes: snapped));
-      if (candidate
-          .isAfter(newStart.add(const Duration(minutes: 15)))) {
-        newEnd = candidate;
+      final raw = _resizeOrigEnd.add(Duration(minutes: snapped));
+      final clamped = raw.isAfter(dayEnd) ? dayEnd : raw;
+      if (clamped.isAfter(newStart.add(const Duration(minutes: 15)))) {
+        newEnd = clamped;
       }
     }
 
@@ -590,6 +671,7 @@ class _TemplateChip extends StatelessWidget {
   const _TemplateChip({required this.template});
 
   @override
+
   Widget build(BuildContext context) {
     final color = Color(template.color);
     return Container(
