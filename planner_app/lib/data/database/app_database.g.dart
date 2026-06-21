@@ -814,6 +814,17 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -837,6 +848,7 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
     recurrenceRuleId,
     memo,
     isCompleted,
+    completedAt,
     createdAt,
   ];
   @override
@@ -916,6 +928,15 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
         ),
       );
     }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -967,6 +988,10 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_completed'],
       )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -990,6 +1015,7 @@ class Block extends DataClass implements Insertable<Block> {
   final int? recurrenceRuleId;
   final String? memo;
   final bool isCompleted;
+  final DateTime? completedAt;
   final DateTime createdAt;
   const Block({
     required this.id,
@@ -1001,6 +1027,7 @@ class Block extends DataClass implements Insertable<Block> {
     this.recurrenceRuleId,
     this.memo,
     required this.isCompleted,
+    this.completedAt,
     required this.createdAt,
   });
   @override
@@ -1027,6 +1054,9 @@ class Block extends DataClass implements Insertable<Block> {
       map['memo'] = Variable<String>(memo);
     }
     map['is_completed'] = Variable<bool>(isCompleted);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1052,6 +1082,9 @@ class Block extends DataClass implements Insertable<Block> {
           : Value(recurrenceRuleId),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
       isCompleted: Value(isCompleted),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
       createdAt: Value(createdAt),
     );
   }
@@ -1071,6 +1104,7 @@ class Block extends DataClass implements Insertable<Block> {
       recurrenceRuleId: serializer.fromJson<int?>(json['recurrenceRuleId']),
       memo: serializer.fromJson<String?>(json['memo']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1087,6 +1121,7 @@ class Block extends DataClass implements Insertable<Block> {
       'recurrenceRuleId': serializer.toJson<int?>(recurrenceRuleId),
       'memo': serializer.toJson<String?>(memo),
       'isCompleted': serializer.toJson<bool>(isCompleted),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1101,6 +1136,7 @@ class Block extends DataClass implements Insertable<Block> {
     Value<int?> recurrenceRuleId = const Value.absent(),
     Value<String?> memo = const Value.absent(),
     bool? isCompleted,
+    Value<DateTime?> completedAt = const Value.absent(),
     DateTime? createdAt,
   }) => Block(
     id: id ?? this.id,
@@ -1114,6 +1150,7 @@ class Block extends DataClass implements Insertable<Block> {
         : this.recurrenceRuleId,
     memo: memo.present ? memo.value : this.memo,
     isCompleted: isCompleted ?? this.isCompleted,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
     createdAt: createdAt ?? this.createdAt,
   );
   Block copyWithCompanion(BlocksCompanion data) {
@@ -1135,6 +1172,9 @@ class Block extends DataClass implements Insertable<Block> {
       isCompleted: data.isCompleted.present
           ? data.isCompleted.value
           : this.isCompleted,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1151,6 +1191,7 @@ class Block extends DataClass implements Insertable<Block> {
           ..write('recurrenceRuleId: $recurrenceRuleId, ')
           ..write('memo: $memo, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1167,6 +1208,7 @@ class Block extends DataClass implements Insertable<Block> {
     recurrenceRuleId,
     memo,
     isCompleted,
+    completedAt,
     createdAt,
   );
   @override
@@ -1182,6 +1224,7 @@ class Block extends DataClass implements Insertable<Block> {
           other.recurrenceRuleId == this.recurrenceRuleId &&
           other.memo == this.memo &&
           other.isCompleted == this.isCompleted &&
+          other.completedAt == this.completedAt &&
           other.createdAt == this.createdAt);
 }
 
@@ -1195,6 +1238,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   final Value<int?> recurrenceRuleId;
   final Value<String?> memo;
   final Value<bool> isCompleted;
+  final Value<DateTime?> completedAt;
   final Value<DateTime> createdAt;
   const BlocksCompanion({
     this.id = const Value.absent(),
@@ -1206,6 +1250,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     this.recurrenceRuleId = const Value.absent(),
     this.memo = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   BlocksCompanion.insert({
@@ -1218,6 +1263,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     this.recurrenceRuleId = const Value.absent(),
     this.memo = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : blockTemplateId = Value(blockTemplateId);
   static Insertable<Block> custom({
@@ -1230,6 +1276,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     Expression<int>? recurrenceRuleId,
     Expression<String>? memo,
     Expression<bool>? isCompleted,
+    Expression<DateTime>? completedAt,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1242,6 +1289,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
       if (recurrenceRuleId != null) 'recurrence_rule_id': recurrenceRuleId,
       if (memo != null) 'memo': memo,
       if (isCompleted != null) 'is_completed': isCompleted,
+      if (completedAt != null) 'completed_at': completedAt,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1256,6 +1304,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     Value<int?>? recurrenceRuleId,
     Value<String?>? memo,
     Value<bool>? isCompleted,
+    Value<DateTime?>? completedAt,
     Value<DateTime>? createdAt,
   }) {
     return BlocksCompanion(
@@ -1268,6 +1317,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
       recurrenceRuleId: recurrenceRuleId ?? this.recurrenceRuleId,
       memo: memo ?? this.memo,
       isCompleted: isCompleted ?? this.isCompleted,
+      completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1302,6 +1352,9 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
     }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1320,6 +1373,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
           ..write('recurrenceRuleId: $recurrenceRuleId, ')
           ..write('memo: $memo, ')
           ..write('isCompleted: $isCompleted, ')
+          ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -4787,6 +4841,7 @@ typedef $$BlocksTableCreateCompanionBuilder =
       Value<int?> recurrenceRuleId,
       Value<String?> memo,
       Value<bool> isCompleted,
+      Value<DateTime?> completedAt,
       Value<DateTime> createdAt,
     });
 typedef $$BlocksTableUpdateCompanionBuilder =
@@ -4800,6 +4855,7 @@ typedef $$BlocksTableUpdateCompanionBuilder =
       Value<int?> recurrenceRuleId,
       Value<String?> memo,
       Value<bool> isCompleted,
+      Value<DateTime?> completedAt,
       Value<DateTime> createdAt,
     });
 
@@ -4921,6 +4977,11 @@ class $$BlocksTableFilterComposer
 
   ColumnFilters<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5070,6 +5131,11 @@ class $$BlocksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5153,6 +5219,11 @@ class $$BlocksTableAnnotationComposer
 
   GeneratedColumn<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
     builder: (column) => column,
   );
 
@@ -5298,6 +5369,7 @@ class $$BlocksTableTableManager
                 Value<int?> recurrenceRuleId = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => BlocksCompanion(
                 id: id,
@@ -5309,6 +5381,7 @@ class $$BlocksTableTableManager
                 recurrenceRuleId: recurrenceRuleId,
                 memo: memo,
                 isCompleted: isCompleted,
+                completedAt: completedAt,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -5322,6 +5395,7 @@ class $$BlocksTableTableManager
                 Value<int?> recurrenceRuleId = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => BlocksCompanion.insert(
                 id: id,
@@ -5333,6 +5407,7 @@ class $$BlocksTableTableManager
                 recurrenceRuleId: recurrenceRuleId,
                 memo: memo,
                 isCompleted: isCompleted,
+                completedAt: completedAt,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

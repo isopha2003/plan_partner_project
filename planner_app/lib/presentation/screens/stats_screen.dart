@@ -503,7 +503,7 @@ class _UnfinishedTile extends ConsumerWidget {
               onPressed: () => ref
                   .read(databaseProvider)
                   .blocksDao
-                  .updateBlock(block.copyWith(isCompleted: true)),
+                  .setBlockCompleted(block.id, true),
             ),
             IconButton(
               icon: Icon(Icons.delete_outline,

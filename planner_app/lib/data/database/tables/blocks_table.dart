@@ -20,6 +20,7 @@ class Blocks extends Table {
   TextColumn get memo => text().nullable()();
   BoolColumn get isCompleted =>
       boolean().withDefault(const Constant(false))();
+  DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
 }

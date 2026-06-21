@@ -12,6 +12,18 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
 
   Future<List<Block>> getAllBlocks() => select(blocks).get();
 
+  /// Reactive stream of all blocks (for grass / stats).
+  Stream<List<Block>> watchAllBlocks() => select(blocks).watch();
+
+  /// Marks a block as completed or uncompleted, recording the exact time.
+  Future<int> setBlockCompleted(int id, bool isCompleted) =>
+      (update(blocks)..where((b) => b.id.equals(id))).write(
+        BlocksCompanion(
+          isCompleted: Value(isCompleted),
+          completedAt: Value(isCompleted ? DateTime.now() : null),
+        ),
+      );
+
   Future<Block?> getBlockById(int id) =>
       (select(blocks)..where((b) => b.id.equals(id))).getSingleOrNull();
 

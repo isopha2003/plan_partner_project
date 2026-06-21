@@ -35,8 +35,9 @@ class StatsCalculator {
 
   /// Aggregates blocks and timer sessions into per-day 잔디 data.
   ///
-  /// Date key is 'YYYY-MM-DD' derived from [block.startTime] /
-  /// [session.startedAt]. Blocks without a startTime are skipped.
+  /// Grass credit is assigned to the day the block was *completed* (completedAt),
+  /// not the day it was scheduled (startTime). Blocks without completedAt are skipped.
+  /// Focus time is still keyed by session.startedAt.
   static Map<String, DayActivity> calculateAttendance({
     required List<Block> blocks,
     required List<TimerSession> sessions,
@@ -44,13 +45,11 @@ class StatsCalculator {
     final result = <String, DayActivity>{};
 
     for (final block in blocks) {
-      if (block.startTime == null) continue;
-      final key = _dateKey(block.startTime!);
+      if (!block.isCompleted || block.completedAt == null) continue;
+      final key = _dateKey(block.completedAt!);
       final current = result[key] ?? DayActivity(date: key);
       result[key] = current.copyWith(
-        totalBlocks: current.totalBlocks + 1,
-        completedBlocks:
-            current.completedBlocks + (block.isCompleted ? 1 : 0),
+        completedBlocks: current.completedBlocks + 1,
       );
     }
 

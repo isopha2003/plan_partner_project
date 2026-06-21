@@ -45,9 +45,9 @@ final checklistItemsProvider =
       ref.watch(databaseProvider).checklistItemsDao.watchItemsByBlock(blockId),
 );
 
-/// All blocks in the DB (for attendance / stats calculation).
-final allBlocksProvider = FutureProvider<List<Block>>(
-  (ref) => ref.watch(databaseProvider).blocksDao.getAllBlocks(),
+/// All blocks in the DB — reactive stream so grass auto-updates on completion.
+final allBlocksProvider = StreamProvider<List<Block>>(
+  (ref) => ref.watch(databaseProvider).blocksDao.watchAllBlocks(),
 );
 
 /// All timer sessions in the DB (for attendance / stats calculation).
