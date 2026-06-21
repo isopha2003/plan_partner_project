@@ -49,6 +49,10 @@ class _DayViewContent extends ConsumerWidget {
               OverlapWarningBanner(overlappingPairs: overlaps),
             Expanded(
               child: SingleChildScrollView(
+                // Bottom padding = collapsed palette height so 24:00 is reachable.
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).size.height * _kCollapsedSize,
+                ),
                 child: SizedBox(
                   height: DayView.hourHeight * 24 + 16,
                   child: Row(
