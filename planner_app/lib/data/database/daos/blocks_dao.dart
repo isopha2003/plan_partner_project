@@ -1,11 +1,12 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../tables/block_templates_table.dart';
 import '../tables/blocks_table.dart';
 
 part 'blocks_dao.g.dart';
 
-@DriftAccessor(tables: [Blocks])
+@DriftAccessor(tables: [Blocks, BlockTemplates])
 class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
   BlocksDao(super.db);
 
@@ -25,27 +26,38 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
   Future<int> deleteBlock(int id) =>
       (delete(blocks)..where((b) => b.id.equals(id))).go();
 
-  /// Streams top-level (no parent) blocks whose startTime falls on [date].
-  Stream<List<Block>> watchTopLevelBlocksForDay(DateTime date) {
+  /// Streams top-level blocks with their template for a given day.
+  Stream<List<(Block, BlockTemplate)>> watchTopLevelBlocksForDay(
+      DateTime date) {
     final s = DateTime(date.year, date.month, date.day);
     final e = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
-    return (select(blocks)
-          ..where((b) =>
-              b.startTime.isBiggerOrEqualValue(s) &
-              b.startTime.isSmallerOrEqualValue(e) &
-              b.parentId.isNull())
-          ..orderBy([(b) => OrderingTerm.asc(b.startTime)]))
-        .watch();
+    final query = select(blocks).join([
+      innerJoin(blockTemplates,
+          blockTemplates.id.equalsExp(blocks.blockTemplateId)),
+    ])
+      ..where(blocks.startTime.isBiggerOrEqualValue(s) &
+          blocks.startTime.isSmallerOrEqualValue(e) &
+          blocks.parentId.isNull())
+      ..orderBy([OrderingTerm.asc(blocks.startTime)]);
+    return query.watch().map((rows) => rows
+        .map((r) => (r.readTable(blocks), r.readTable(blockTemplates)))
+        .toList());
   }
 
-  /// Streams child blocks belonging to [parentId].
-  Stream<List<Block>> watchChildBlocks(int parentId) =>
-      (select(blocks)
-            ..where((b) => b.parentId.equals(parentId))
-            ..orderBy([(b) => OrderingTerm.asc(b.startTime)]))
-          .watch();
+  /// Streams child blocks with their template for a given parent.
+  Stream<List<(Block, BlockTemplate)>> watchChildBlocks(int parentId) {
+    final query = select(blocks).join([
+      innerJoin(blockTemplates,
+          blockTemplates.id.equalsExp(blocks.blockTemplateId)),
+    ])
+      ..where(blocks.parentId.equals(parentId))
+      ..orderBy([OrderingTerm.asc(blocks.startTime)]);
+    return query.watch().map((rows) => rows
+        .map((r) => (r.readTable(blocks), r.readTable(blockTemplates)))
+        .toList());
+  }
 
-  /// Updates only start/end time of a block (used by drag-and-drop).
+  /// Updates only start/end time of a block (used by drag-and-drop and resize).
   Future<int> updateBlockTimes(int id, DateTime newStart, DateTime newEnd) =>
       (update(blocks)..where((b) => b.id.equals(id))).write(
         BlocksCompanion(

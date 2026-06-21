@@ -35,7 +35,8 @@ class _WeekdayHeader extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                  border:
+                      Border(bottom: BorderSide(color: Colors.grey[200]!)),
                 ),
                 child: Text(
                   l,
@@ -62,8 +63,7 @@ class _MonthGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final firstDay = DateTime(year, month, 1);
-    // Offset so grid starts on Monday (weekday 1)
-    final startOffset = firstDay.weekday - 1; // 0 = Monday
+    final startOffset = firstDay.weekday - 1;
     final daysInMonth = DateTime(year, month + 1, 0).day;
     final totalCells = startOffset + daysInMonth;
     final rowCount = (totalCells / 7).ceil();
@@ -81,7 +81,7 @@ class _MonthGrid extends ConsumerWidget {
           return const SizedBox.shrink();
         }
         final cellDate = DateTime(year, month, dayNumber);
-        return _DayCell(date: cellDate, ref: ref);
+        return _DayCell(date: cellDate);
       },
     );
   }
@@ -89,9 +89,8 @@ class _MonthGrid extends ConsumerWidget {
 
 class _DayCell extends ConsumerWidget {
   final DateTime date;
-  final WidgetRef ref;
 
-  const _DayCell({required this.date, required this.ref});
+  const _DayCell({required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -110,7 +109,10 @@ class _DayCell extends ConsumerWidget {
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey[100]!),
           color: isToday
-              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+              ? Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.3)
               : null,
         ),
         padding: const EdgeInsets.all(4),
@@ -133,7 +135,7 @@ class _DayCell extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             blocksAsync.when(
-              data: (blocks) => _BlockDots(blocks: blocks),
+              data: (pairs) => _BlockDots(pairs: pairs),
               loading: () => const SizedBox.shrink(),
               error: (e, _) => const SizedBox.shrink(),
             ),
@@ -145,22 +147,22 @@ class _DayCell extends ConsumerWidget {
 }
 
 class _BlockDots extends StatelessWidget {
-  final List<Block> blocks;
-  const _BlockDots({required this.blocks});
+  final List<(Block, BlockTemplate)> pairs;
+  const _BlockDots({required this.pairs});
 
   @override
   Widget build(BuildContext context) {
-    if (blocks.isEmpty) return const SizedBox.shrink();
-    final dots = blocks.take(4).toList();
+    if (pairs.isEmpty) return const SizedBox.shrink();
+    final dots = pairs.take(4).toList();
     return Wrap(
       spacing: 2,
       children: dots
           .map(
-            (b) => Container(
+            (p) => Container(
               width: 6,
               height: 6,
               decoration: BoxDecoration(
-                color: Color(b.color),
+                color: Color(p.$2.color),
                 shape: BoxShape.circle,
               ),
             ),

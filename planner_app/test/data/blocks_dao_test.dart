@@ -8,63 +8,70 @@ void main() {
   setUp(() => db = AppDatabase.forTesting());
   tearDown(() => db.close());
 
+  Future<int> makeTemplate(String title, {int color = 0xFF4CAF50}) =>
+      db.blockTemplatesDao.insertTemplate(
+        BlockTemplatesCompanion.insert(title: title, color: color),
+      );
+
   group('BlocksDao CRUD', () {
     test('insert and read a block', () async {
-      final id = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('운동'),
-        color: Value(0xFF4CAF50),
-      ));
+      final tid = await makeTemplate('운동');
+      final id = await db.blocksDao.insertBlock(
+        BlocksCompanion(blockTemplateId: Value(tid)),
+      );
       final block = await db.blocksDao.getBlockById(id);
       expect(block, isNotNull);
-      expect(block!.title, '운동');
+      expect(block!.blockTemplateId, tid);
       expect(block.isCompleted, false);
     });
 
-    test('update a block', () async {
-      final id = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('독서'),
-        color: Value(0xFF2196F3),
-      ));
+    test('update a block (mark completed)', () async {
+      final tid = await makeTemplate('독서');
+      final id = await db.blocksDao.insertBlock(
+        BlocksCompanion(blockTemplateId: Value(tid)),
+      );
       final original = await db.blocksDao.getBlockById(id);
-      await db.blocksDao.updateBlock(original!.copyWith(title: '독서 완료'));
+      await db.blocksDao.updateBlock(original!.copyWith(isCompleted: true));
       final updated = await db.blocksDao.getBlockById(id);
-      expect(updated!.title, '독서 완료');
+      expect(updated!.isCompleted, true);
     });
 
     test('delete a block', () async {
-      final id = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('임시'),
-        color: Value(0xFFFF5722),
-      ));
+      final tid = await makeTemplate('임시');
+      final id = await db.blocksDao.insertBlock(
+        BlocksCompanion(blockTemplateId: Value(tid)),
+      );
       await db.blocksDao.deleteBlock(id);
       final deleted = await db.blocksDao.getBlockById(id);
       expect(deleted, isNull);
     });
 
     test('get all blocks', () async {
-      await db.blocksDao.insertBlock(
-          const BlocksCompanion(title: Value('A'), color: Value(0xFFFFFFFF)));
-      await db.blocksDao.insertBlock(
-          const BlocksCompanion(title: Value('B'), color: Value(0xFFFFFFFF)));
+      final t1 = await makeTemplate('A');
+      final t2 = await makeTemplate('B');
+      await db.blocksDao.insertBlock(BlocksCompanion(blockTemplateId: Value(t1)));
+      await db.blocksDao.insertBlock(BlocksCompanion(blockTemplateId: Value(t2)));
       final all = await db.blocksDao.getAllBlocks();
       expect(all.length, 2);
     });
 
     test('get child blocks by parentId', () async {
-      final parentId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('부모'),
-        color: Value(0xFFFFFFFF),
-      ));
-      await db.blocksDao.insertBlock(BlocksCompanion(
-        title: const Value('자식 1'),
-        color: const Value(0xFFFFFFFF),
-        parentId: Value(parentId),
-      ));
-      await db.blocksDao.insertBlock(BlocksCompanion(
-        title: const Value('자식 2'),
-        color: const Value(0xFFFFFFFF),
-        parentId: Value(parentId),
-      ));
+      final tid = await makeTemplate('공통 템플릿');
+      final parentId = await db.blocksDao.insertBlock(
+        BlocksCompanion(blockTemplateId: Value(tid)),
+      );
+      await db.blocksDao.insertBlock(
+        BlocksCompanion(
+          blockTemplateId: Value(tid),
+          parentId: Value(parentId),
+        ),
+      );
+      await db.blocksDao.insertBlock(
+        BlocksCompanion(
+          blockTemplateId: Value(tid),
+          parentId: Value(parentId),
+        ),
+      );
       final children = await db.blocksDao.getChildBlocks(parentId);
       expect(children.length, 2);
     });

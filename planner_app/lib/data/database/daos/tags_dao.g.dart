@@ -5,8 +5,7 @@ part of 'tags_dao.dart';
 // ignore_for_file: type=lint
 mixin _$TagsDaoMixin on DatabaseAccessor<AppDatabase> {
   $TagsTable get tags => attachedDatabase.tags;
-  $RecurrenceRulesTable get recurrenceRules => attachedDatabase.recurrenceRules;
-  $BlocksTable get blocks => attachedDatabase.blocks;
+  $BlockTemplatesTable get blockTemplates => attachedDatabase.blockTemplates;
   $BlockTagsTable get blockTags => attachedDatabase.blockTags;
   TagsDaoManager get managers => TagsDaoManager(this);
 }
@@ -16,13 +15,11 @@ class TagsDaoManager {
   TagsDaoManager(this._db);
   $$TagsTableTableManager get tags =>
       $$TagsTableTableManager(_db.attachedDatabase, _db.tags);
-  $$RecurrenceRulesTableTableManager get recurrenceRules =>
-      $$RecurrenceRulesTableTableManager(
+  $$BlockTemplatesTableTableManager get blockTemplates =>
+      $$BlockTemplatesTableTableManager(
         _db.attachedDatabase,
-        _db.recurrenceRules,
+        _db.blockTemplates,
       );
-  $$BlocksTableTableManager get blocks =>
-      $$BlocksTableTableManager(_db.attachedDatabase, _db.blocks);
   $$BlockTagsTableTableManager get blockTags =>
       $$BlockTagsTableTableManager(_db.attachedDatabase, _db.blockTags);
 }

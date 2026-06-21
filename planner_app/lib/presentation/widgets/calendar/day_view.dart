@@ -18,7 +18,7 @@ class DayView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final blocksAsync = ref.watch(blocksForDayProvider(date));
     return blocksAsync.when(
-      data: (blocks) => _Timeline(date: date, blocks: blocks),
+      data: (pairs) => _Timeline(date: date, pairs: pairs),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('불러오기 실패: $e')),
     );
@@ -27,13 +27,13 @@ class DayView extends ConsumerWidget {
 
 class _Timeline extends StatelessWidget {
   final DateTime date;
-  final List<Block> blocks;
+  final List<(Block, BlockTemplate)> pairs;
 
-  const _Timeline({required this.date, required this.blocks});
+  const _Timeline({required this.date, required this.pairs});
 
   @override
   Widget build(BuildContext context) {
-    final overlaps = findOverlaps(blocks);
+    final overlaps = findOverlaps(pairs);
     return Column(
       children: [
         if (overlaps.isNotEmpty)
@@ -52,7 +52,7 @@ class _Timeline extends StatelessWidget {
           children: [
             _TimeLabels(),
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: _TimelineGrid(date: date, blocks: blocks)),
+            Expanded(child: _TimelineGrid(date: date, pairs: pairs)),
           ],
         ),
       ),
@@ -86,13 +86,12 @@ class _TimeLabels extends StatelessWidget {
   }
 }
 
-/// Timeline grid with drag-and-drop support. Blocks are long-press-draggable;
-/// dropping anywhere on the grid snaps to the nearest 15-minute slot.
+/// Timeline grid with drag-and-drop support.
 class _TimelineGrid extends ConsumerStatefulWidget {
   final DateTime date;
-  final List<Block> blocks;
+  final List<(Block, BlockTemplate)> pairs;
 
-  const _TimelineGrid({required this.date, required this.blocks});
+  const _TimelineGrid({required this.date, required this.pairs});
 
   @override
   ConsumerState<_TimelineGrid> createState() => _TimelineGridState();
@@ -104,8 +103,8 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
 
   @override
   Widget build(BuildContext context) {
-    final scheduled = widget.blocks
-        .where((b) => b.startTime != null && b.endTime != null)
+    final scheduled = widget.pairs
+        .where((p) => p.$1.startTime != null && p.$1.endTime != null)
         .toList();
 
     return DragTarget<Block>(
@@ -122,7 +121,6 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
       builder: (context, candidateData, rejectedData) {
         return Stack(
           children: [
-            // Drag-over highlight
             if (_isDragOver)
               Positioned.fill(
                 child: IgnorePointer(
@@ -150,29 +148,29 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
                 right: 0,
                 child: Container(height: 1, color: Colors.grey[100]),
               ),
-            // Draggable block tiles (fixed height; Task 3 makes height proportional)
-            for (final b in scheduled) _draggableBlock(b),
+            for (final pair in scheduled) _draggableBlock(pair),
           ],
         );
       },
     );
   }
 
-  Widget _draggableBlock(Block b) {
-    final topMinutes = b.startTime!.hour * 60 + b.startTime!.minute;
+  Widget _draggableBlock((Block, BlockTemplate) pair) {
+    final (block, template) = pair;
+    final topMinutes = block.startTime!.hour * 60 + block.startTime!.minute;
     final top = topMinutes * DayView.hourHeight / 60.0;
-    // Height is proportional to duration: 1 minute = 1 px (hourHeight = 60 px/hr)
-    final durationMin = b.endTime!.difference(b.startTime!).inMinutes;
-    final height = (durationMin * DayView.hourHeight / 60.0).clamp(22.0, double.infinity);
+    final durationMin = block.endTime!.difference(block.startTime!).inMinutes;
+    final height =
+        (durationMin * DayView.hourHeight / 60.0).clamp(22.0, double.infinity);
 
-    final tile = BlockTile(block: b);
+    final tile = BlockTile(block: block, template: template);
     return Positioned(
       top: top,
       left: 4,
       right: 4,
       height: height,
       child: LongPressDraggable<Block>(
-        data: b,
+        data: block,
         delay: const Duration(milliseconds: 400),
         feedback: SizedBox(
           width: 160,
@@ -196,7 +194,6 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
 
     final localY = renderBox.globalToLocal(details.offset).dy;
     final rawMinutes = (localY / DayView.hourHeight * 60).round();
-    // Snap to nearest 15 minutes, clamped to valid day range
     final snappedMinutes = ((rawMinutes / 15).round() * 15).clamp(0, 23 * 60);
 
     final block = details.data;

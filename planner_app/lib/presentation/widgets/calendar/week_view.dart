@@ -46,7 +46,6 @@ class _DayColumn extends ConsumerWidget {
       width: _colWidth,
       child: Column(
         children: [
-          // Day header
           GestureDetector(
             onTap: () {
               notifier.selectDate(date);
@@ -67,10 +66,7 @@ class _DayColumn extends ConsumerWidget {
                 children: [
                   Text(
                     _weekdays[date.weekday - 1],
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 2),
                   CircleAvatar(
@@ -91,17 +87,17 @@ class _DayColumn extends ConsumerWidget {
               ),
             ),
           ),
-          // Block list
           Container(
             constraints: const BoxConstraints(minHeight: 400),
             decoration: BoxDecoration(
               border: Border(right: BorderSide(color: Colors.grey[200]!)),
             ),
             child: blocksAsync.when(
-              data: (blocks) => _BlockList(blocks: blocks),
+              data: (pairs) => _BlockList(pairs: pairs),
               loading: () => const SizedBox(
                 height: 40,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                child:
+                    Center(child: CircularProgressIndicator(strokeWidth: 2)),
               ),
               error: (e, _) => const SizedBox.shrink(),
             ),
@@ -118,17 +114,15 @@ class _DayColumn extends ConsumerWidget {
 }
 
 class _BlockList extends StatelessWidget {
-  final List<Block> blocks;
-  const _BlockList({required this.blocks});
+  final List<(Block, BlockTemplate)> pairs;
+  const _BlockList({required this.pairs});
 
   @override
   Widget build(BuildContext context) {
-    if (blocks.isEmpty) {
-      return const SizedBox(height: 40);
-    }
+    if (pairs.isEmpty) return const SizedBox(height: 40);
     return Column(
-      children: blocks.map((b) {
-        final color = Color(b.color);
+      children: pairs.map((p) {
+        final color = Color(p.$2.color);
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -138,7 +132,7 @@ class _BlockList extends StatelessWidget {
             border: Border(left: BorderSide(color: color, width: 3)),
           ),
           child: Text(
-            b.title,
+            p.$2.title,
             style: const TextStyle(fontSize: 11),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

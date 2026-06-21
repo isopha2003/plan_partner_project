@@ -4,15 +4,14 @@ import 'package:planner_app/domain/services/stats_calculator.dart';
 
 Block _block({
   int id = 1,
-  String title = '공부',
+  int blockTemplateId = 1,
   DateTime? start,
   DateTime? end,
   bool completed = false,
 }) =>
     Block(
       id: id,
-      title: title,
-      color: 0xFFFFFFFF,
+      blockTemplateId: blockTemplateId,
       startTime: start,
       endTime: end,
       parentId: null,

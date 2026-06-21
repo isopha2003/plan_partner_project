@@ -8,12 +8,16 @@ void main() {
   setUp(() => db = AppDatabase.forTesting());
   tearDown(() => db.close());
 
+  Future<int> makeBlock(String title, {int color = 0xFF9C27B0}) async {
+    final tid = await db.blockTemplatesDao.insertTemplate(
+      BlockTemplatesCompanion.insert(title: title, color: color),
+    );
+    return db.blocksDao.insertBlock(BlocksCompanion(blockTemplateId: Value(tid)));
+  }
+
   group('ChecklistItemsDao - 3단계 중첩', () {
     test('create and query 3-level nested checklist items', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('공부'),
-        color: Value(0xFF9C27B0),
-      ));
+      final blockId = await makeBlock('공부');
 
       final level1Id = await db.checklistItemsDao.insertItem(
           ChecklistItemsCompanion(
@@ -44,10 +48,7 @@ void main() {
     });
 
     test('update item completion', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('할일'),
-        color: Value(0xFFFFFFFF),
-      ));
+      final blockId = await makeBlock('할일', color: 0xFFFFFFFF);
       await db.checklistItemsDao.insertItem(ChecklistItemsCompanion(
           title: const Value('항목'), blockId: Value(blockId)));
       final item =

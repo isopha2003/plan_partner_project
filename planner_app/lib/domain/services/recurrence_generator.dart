@@ -10,10 +10,11 @@ class RecurrenceGenerator {
   /// Returns a list of block companions for each occurrence of [rule] in the
   /// half-open window [from, from + daysAhead).
   ///
-  /// Times-of-day are copied from [template]; only the date is shifted.
+  /// Times-of-day are copied from [sourceBlock]; only the date is shifted.
+  /// The generated instances reference the same [blockTemplateId] as [sourceBlock].
   static List<BlocksCompanion> generate({
     required RecurrenceRule rule,
-    required Block template,
+    required Block sourceBlock,
     required DateTime from,
     required int daysAhead,
   }) {
@@ -29,7 +30,7 @@ class RecurrenceGenerator {
     var current = _midnight(from);
     while (current.isBefore(effectiveEnd)) {
       if (_matches(rule, daysOfWeek, current)) {
-        instances.add(_makeCompanion(template, current, rule.id));
+        instances.add(_makeCompanion(sourceBlock, current, rule.id));
       }
       current = current.add(const Duration(days: 1));
     }
@@ -93,23 +94,24 @@ class RecurrenceGenerator {
   }
 
   static BlocksCompanion _makeCompanion(
-    Block template,
+    Block sourceBlock,
     DateTime date,
     int ruleId,
   ) {
     return BlocksCompanion(
-      title: Value(template.title),
-      color: Value(template.color),
+      blockTemplateId: Value(sourceBlock.blockTemplateId),
       startTime: Value(
-        template.startTime != null
-            ? _copyTime(template.startTime!, date)
+        sourceBlock.startTime != null
+            ? _copyTime(sourceBlock.startTime!, date)
             : null,
       ),
       endTime: Value(
-        template.endTime != null ? _copyTime(template.endTime!, date) : null,
+        sourceBlock.endTime != null
+            ? _copyTime(sourceBlock.endTime!, date)
+            : null,
       ),
       recurrenceRuleId: Value(ruleId),
-      memo: Value(template.memo),
+      memo: Value(sourceBlock.memo),
     );
   }
 

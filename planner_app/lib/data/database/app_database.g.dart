@@ -3,6 +3,300 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $BlockTemplatesTable extends BlockTemplates
+    with TableInfo<$BlockTemplatesTable, BlockTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BlockTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, title, color, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'block_templates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BlockTemplate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BlockTemplate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BlockTemplate(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BlockTemplatesTable createAlias(String alias) {
+    return $BlockTemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class BlockTemplate extends DataClass implements Insertable<BlockTemplate> {
+  final int id;
+  final String title;
+  final int color;
+  final DateTime createdAt;
+  const BlockTemplate({
+    required this.id,
+    required this.title,
+    required this.color,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    map['color'] = Variable<int>(color);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  BlockTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return BlockTemplatesCompanion(
+      id: Value(id),
+      title: Value(title),
+      color: Value(color),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory BlockTemplate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BlockTemplate(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      color: serializer.fromJson<int>(json['color']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'color': serializer.toJson<int>(color),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  BlockTemplate copyWith({
+    int? id,
+    String? title,
+    int? color,
+    DateTime? createdAt,
+  }) => BlockTemplate(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    color: color ?? this.color,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  BlockTemplate copyWithCompanion(BlockTemplatesCompanion data) {
+    return BlockTemplate(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      color: data.color.present ? data.color.value : this.color,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BlockTemplate(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('color: $color, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, color, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BlockTemplate &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.color == this.color &&
+          other.createdAt == this.createdAt);
+}
+
+class BlockTemplatesCompanion extends UpdateCompanion<BlockTemplate> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<int> color;
+  final Value<DateTime> createdAt;
+  const BlockTemplatesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.color = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  BlockTemplatesCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    required int color,
+    this.createdAt = const Value.absent(),
+  }) : title = Value(title),
+       color = Value(color);
+  static Insertable<BlockTemplate> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<int>? color,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (color != null) 'color': color,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  BlockTemplatesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<int>? color,
+    Value<DateTime>? createdAt,
+  }) {
+    return BlockTemplatesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      color: color ?? this.color,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BlockTemplatesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('color: $color, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $RecurrenceRulesTable extends RecurrenceRules
     with TableInfo<$RecurrenceRulesTable, RecurrenceRule> {
   @override
@@ -424,23 +718,19 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
-  late final GeneratedColumn<String> title = GeneratedColumn<String>(
-    'title',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
+  static const VerificationMeta _blockTemplateIdMeta = const VerificationMeta(
+    'blockTemplateId',
   );
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
-  late final GeneratedColumn<int> color = GeneratedColumn<int>(
-    'color',
+  late final GeneratedColumn<int> blockTemplateId = GeneratedColumn<int>(
+    'block_template_id',
     aliasedName,
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES block_templates (id)',
+    ),
   );
   static const VerificationMeta _startTimeMeta = const VerificationMeta(
     'startTime',
@@ -539,8 +829,7 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    title,
-    color,
+    blockTemplateId,
     startTime,
     endTime,
     parentId,
@@ -565,21 +854,16 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('title')) {
+    if (data.containsKey('block_template_id')) {
       context.handle(
-        _titleMeta,
-        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+        _blockTemplateIdMeta,
+        blockTemplateId.isAcceptableOrUnknown(
+          data['block_template_id']!,
+          _blockTemplateIdMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_titleMeta);
-    }
-    if (data.containsKey('color')) {
-      context.handle(
-        _colorMeta,
-        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_colorMeta);
+      context.missing(_blockTemplateIdMeta);
     }
     if (data.containsKey('start_time')) {
       context.handle(
@@ -651,13 +935,9 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      title: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}title'],
-      )!,
-      color: attachedDatabase.typeMapping.read(
+      blockTemplateId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}color'],
+        data['${effectivePrefix}block_template_id'],
       )!,
       startTime: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -702,8 +982,7 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, Block> {
 
 class Block extends DataClass implements Insertable<Block> {
   final int id;
-  final String title;
-  final int color;
+  final int blockTemplateId;
   final DateTime? startTime;
   final DateTime? endTime;
   final int? parentId;
@@ -714,8 +993,7 @@ class Block extends DataClass implements Insertable<Block> {
   final DateTime createdAt;
   const Block({
     required this.id,
-    required this.title,
-    required this.color,
+    required this.blockTemplateId,
     this.startTime,
     this.endTime,
     this.parentId,
@@ -729,8 +1007,7 @@ class Block extends DataClass implements Insertable<Block> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['title'] = Variable<String>(title);
-    map['color'] = Variable<int>(color);
+    map['block_template_id'] = Variable<int>(blockTemplateId);
     if (!nullToAbsent || startTime != null) {
       map['start_time'] = Variable<DateTime>(startTime);
     }
@@ -757,8 +1034,7 @@ class Block extends DataClass implements Insertable<Block> {
   BlocksCompanion toCompanion(bool nullToAbsent) {
     return BlocksCompanion(
       id: Value(id),
-      title: Value(title),
-      color: Value(color),
+      blockTemplateId: Value(blockTemplateId),
       startTime: startTime == null && nullToAbsent
           ? const Value.absent()
           : Value(startTime),
@@ -787,8 +1063,7 @@ class Block extends DataClass implements Insertable<Block> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Block(
       id: serializer.fromJson<int>(json['id']),
-      title: serializer.fromJson<String>(json['title']),
-      color: serializer.fromJson<int>(json['color']),
+      blockTemplateId: serializer.fromJson<int>(json['blockTemplateId']),
       startTime: serializer.fromJson<DateTime?>(json['startTime']),
       endTime: serializer.fromJson<DateTime?>(json['endTime']),
       parentId: serializer.fromJson<int?>(json['parentId']),
@@ -804,8 +1079,7 @@ class Block extends DataClass implements Insertable<Block> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'title': serializer.toJson<String>(title),
-      'color': serializer.toJson<int>(color),
+      'blockTemplateId': serializer.toJson<int>(blockTemplateId),
       'startTime': serializer.toJson<DateTime?>(startTime),
       'endTime': serializer.toJson<DateTime?>(endTime),
       'parentId': serializer.toJson<int?>(parentId),
@@ -819,8 +1093,7 @@ class Block extends DataClass implements Insertable<Block> {
 
   Block copyWith({
     int? id,
-    String? title,
-    int? color,
+    int? blockTemplateId,
     Value<DateTime?> startTime = const Value.absent(),
     Value<DateTime?> endTime = const Value.absent(),
     Value<int?> parentId = const Value.absent(),
@@ -831,8 +1104,7 @@ class Block extends DataClass implements Insertable<Block> {
     DateTime? createdAt,
   }) => Block(
     id: id ?? this.id,
-    title: title ?? this.title,
-    color: color ?? this.color,
+    blockTemplateId: blockTemplateId ?? this.blockTemplateId,
     startTime: startTime.present ? startTime.value : this.startTime,
     endTime: endTime.present ? endTime.value : this.endTime,
     parentId: parentId.present ? parentId.value : this.parentId,
@@ -847,8 +1119,9 @@ class Block extends DataClass implements Insertable<Block> {
   Block copyWithCompanion(BlocksCompanion data) {
     return Block(
       id: data.id.present ? data.id.value : this.id,
-      title: data.title.present ? data.title.value : this.title,
-      color: data.color.present ? data.color.value : this.color,
+      blockTemplateId: data.blockTemplateId.present
+          ? data.blockTemplateId.value
+          : this.blockTemplateId,
       startTime: data.startTime.present ? data.startTime.value : this.startTime,
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
       parentId: data.parentId.present ? data.parentId.value : this.parentId,
@@ -870,8 +1143,7 @@ class Block extends DataClass implements Insertable<Block> {
   String toString() {
     return (StringBuffer('Block(')
           ..write('id: $id, ')
-          ..write('title: $title, ')
-          ..write('color: $color, ')
+          ..write('blockTemplateId: $blockTemplateId, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
           ..write('parentId: $parentId, ')
@@ -887,8 +1159,7 @@ class Block extends DataClass implements Insertable<Block> {
   @override
   int get hashCode => Object.hash(
     id,
-    title,
-    color,
+    blockTemplateId,
     startTime,
     endTime,
     parentId,
@@ -903,8 +1174,7 @@ class Block extends DataClass implements Insertable<Block> {
       identical(this, other) ||
       (other is Block &&
           other.id == this.id &&
-          other.title == this.title &&
-          other.color == this.color &&
+          other.blockTemplateId == this.blockTemplateId &&
           other.startTime == this.startTime &&
           other.endTime == this.endTime &&
           other.parentId == this.parentId &&
@@ -917,8 +1187,7 @@ class Block extends DataClass implements Insertable<Block> {
 
 class BlocksCompanion extends UpdateCompanion<Block> {
   final Value<int> id;
-  final Value<String> title;
-  final Value<int> color;
+  final Value<int> blockTemplateId;
   final Value<DateTime?> startTime;
   final Value<DateTime?> endTime;
   final Value<int?> parentId;
@@ -929,8 +1198,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   final Value<DateTime> createdAt;
   const BlocksCompanion({
     this.id = const Value.absent(),
-    this.title = const Value.absent(),
-    this.color = const Value.absent(),
+    this.blockTemplateId = const Value.absent(),
     this.startTime = const Value.absent(),
     this.endTime = const Value.absent(),
     this.parentId = const Value.absent(),
@@ -942,8 +1210,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   });
   BlocksCompanion.insert({
     this.id = const Value.absent(),
-    required String title,
-    required int color,
+    required int blockTemplateId,
     this.startTime = const Value.absent(),
     this.endTime = const Value.absent(),
     this.parentId = const Value.absent(),
@@ -952,12 +1219,10 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     this.memo = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
-  }) : title = Value(title),
-       color = Value(color);
+  }) : blockTemplateId = Value(blockTemplateId);
   static Insertable<Block> custom({
     Expression<int>? id,
-    Expression<String>? title,
-    Expression<int>? color,
+    Expression<int>? blockTemplateId,
     Expression<DateTime>? startTime,
     Expression<DateTime>? endTime,
     Expression<int>? parentId,
@@ -969,8 +1234,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (title != null) 'title': title,
-      if (color != null) 'color': color,
+      if (blockTemplateId != null) 'block_template_id': blockTemplateId,
       if (startTime != null) 'start_time': startTime,
       if (endTime != null) 'end_time': endTime,
       if (parentId != null) 'parent_id': parentId,
@@ -984,8 +1248,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
 
   BlocksCompanion copyWith({
     Value<int>? id,
-    Value<String>? title,
-    Value<int>? color,
+    Value<int>? blockTemplateId,
     Value<DateTime?>? startTime,
     Value<DateTime?>? endTime,
     Value<int?>? parentId,
@@ -997,8 +1260,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   }) {
     return BlocksCompanion(
       id: id ?? this.id,
-      title: title ?? this.title,
-      color: color ?? this.color,
+      blockTemplateId: blockTemplateId ?? this.blockTemplateId,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       parentId: parentId ?? this.parentId,
@@ -1016,11 +1278,8 @@ class BlocksCompanion extends UpdateCompanion<Block> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (title.present) {
-      map['title'] = Variable<String>(title.value);
-    }
-    if (color.present) {
-      map['color'] = Variable<int>(color.value);
+    if (blockTemplateId.present) {
+      map['block_template_id'] = Variable<int>(blockTemplateId.value);
     }
     if (startTime.present) {
       map['start_time'] = Variable<DateTime>(startTime.value);
@@ -1053,8 +1312,7 @@ class BlocksCompanion extends UpdateCompanion<Block> {
   String toString() {
     return (StringBuffer('BlocksCompanion(')
           ..write('id: $id, ')
-          ..write('title: $title, ')
-          ..write('color: $color, ')
+          ..write('blockTemplateId: $blockTemplateId, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
           ..write('parentId: $parentId, ')
@@ -1776,18 +2034,18 @@ class $BlockTagsTable extends BlockTags
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $BlockTagsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _blockIdMeta = const VerificationMeta(
-    'blockId',
+  static const VerificationMeta _blockTemplateIdMeta = const VerificationMeta(
+    'blockTemplateId',
   );
   @override
-  late final GeneratedColumn<int> blockId = GeneratedColumn<int>(
-    'block_id',
+  late final GeneratedColumn<int> blockTemplateId = GeneratedColumn<int>(
+    'block_template_id',
     aliasedName,
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES blocks (id)',
+      'REFERENCES block_templates (id)',
     ),
   );
   static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
@@ -1803,7 +2061,7 @@ class $BlockTagsTable extends BlockTags
     ),
   );
   @override
-  List<GeneratedColumn> get $columns => [blockId, tagId];
+  List<GeneratedColumn> get $columns => [blockTemplateId, tagId];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1816,13 +2074,16 @@ class $BlockTagsTable extends BlockTags
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('block_id')) {
+    if (data.containsKey('block_template_id')) {
       context.handle(
-        _blockIdMeta,
-        blockId.isAcceptableOrUnknown(data['block_id']!, _blockIdMeta),
+        _blockTemplateIdMeta,
+        blockTemplateId.isAcceptableOrUnknown(
+          data['block_template_id']!,
+          _blockTemplateIdMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_blockIdMeta);
+      context.missing(_blockTemplateIdMeta);
     }
     if (data.containsKey('tag_id')) {
       context.handle(
@@ -1836,14 +2097,14 @@ class $BlockTagsTable extends BlockTags
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {blockId, tagId};
+  Set<GeneratedColumn> get $primaryKey => {blockTemplateId, tagId};
   @override
   BlockTag map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return BlockTag(
-      blockId: attachedDatabase.typeMapping.read(
+      blockTemplateId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}block_id'],
+        data['${effectivePrefix}block_template_id'],
       )!,
       tagId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1859,19 +2120,22 @@ class $BlockTagsTable extends BlockTags
 }
 
 class BlockTag extends DataClass implements Insertable<BlockTag> {
-  final int blockId;
+  final int blockTemplateId;
   final int tagId;
-  const BlockTag({required this.blockId, required this.tagId});
+  const BlockTag({required this.blockTemplateId, required this.tagId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['block_id'] = Variable<int>(blockId);
+    map['block_template_id'] = Variable<int>(blockTemplateId);
     map['tag_id'] = Variable<int>(tagId);
     return map;
   }
 
   BlockTagsCompanion toCompanion(bool nullToAbsent) {
-    return BlockTagsCompanion(blockId: Value(blockId), tagId: Value(tagId));
+    return BlockTagsCompanion(
+      blockTemplateId: Value(blockTemplateId),
+      tagId: Value(tagId),
+    );
   }
 
   factory BlockTag.fromJson(
@@ -1880,7 +2144,7 @@ class BlockTag extends DataClass implements Insertable<BlockTag> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return BlockTag(
-      blockId: serializer.fromJson<int>(json['blockId']),
+      blockTemplateId: serializer.fromJson<int>(json['blockTemplateId']),
       tagId: serializer.fromJson<int>(json['tagId']),
     );
   }
@@ -1888,16 +2152,20 @@ class BlockTag extends DataClass implements Insertable<BlockTag> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'blockId': serializer.toJson<int>(blockId),
+      'blockTemplateId': serializer.toJson<int>(blockTemplateId),
       'tagId': serializer.toJson<int>(tagId),
     };
   }
 
-  BlockTag copyWith({int? blockId, int? tagId}) =>
-      BlockTag(blockId: blockId ?? this.blockId, tagId: tagId ?? this.tagId);
+  BlockTag copyWith({int? blockTemplateId, int? tagId}) => BlockTag(
+    blockTemplateId: blockTemplateId ?? this.blockTemplateId,
+    tagId: tagId ?? this.tagId,
+  );
   BlockTag copyWithCompanion(BlockTagsCompanion data) {
     return BlockTag(
-      blockId: data.blockId.present ? data.blockId.value : this.blockId,
+      blockTemplateId: data.blockTemplateId.present
+          ? data.blockTemplateId.value
+          : this.blockTemplateId,
       tagId: data.tagId.present ? data.tagId.value : this.tagId,
     );
   }
@@ -1905,56 +2173,56 @@ class BlockTag extends DataClass implements Insertable<BlockTag> {
   @override
   String toString() {
     return (StringBuffer('BlockTag(')
-          ..write('blockId: $blockId, ')
+          ..write('blockTemplateId: $blockTemplateId, ')
           ..write('tagId: $tagId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(blockId, tagId);
+  int get hashCode => Object.hash(blockTemplateId, tagId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BlockTag &&
-          other.blockId == this.blockId &&
+          other.blockTemplateId == this.blockTemplateId &&
           other.tagId == this.tagId);
 }
 
 class BlockTagsCompanion extends UpdateCompanion<BlockTag> {
-  final Value<int> blockId;
+  final Value<int> blockTemplateId;
   final Value<int> tagId;
   final Value<int> rowid;
   const BlockTagsCompanion({
-    this.blockId = const Value.absent(),
+    this.blockTemplateId = const Value.absent(),
     this.tagId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BlockTagsCompanion.insert({
-    required int blockId,
+    required int blockTemplateId,
     required int tagId,
     this.rowid = const Value.absent(),
-  }) : blockId = Value(blockId),
+  }) : blockTemplateId = Value(blockTemplateId),
        tagId = Value(tagId);
   static Insertable<BlockTag> custom({
-    Expression<int>? blockId,
+    Expression<int>? blockTemplateId,
     Expression<int>? tagId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (blockId != null) 'block_id': blockId,
+      if (blockTemplateId != null) 'block_template_id': blockTemplateId,
       if (tagId != null) 'tag_id': tagId,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   BlockTagsCompanion copyWith({
-    Value<int>? blockId,
+    Value<int>? blockTemplateId,
     Value<int>? tagId,
     Value<int>? rowid,
   }) {
     return BlockTagsCompanion(
-      blockId: blockId ?? this.blockId,
+      blockTemplateId: blockTemplateId ?? this.blockTemplateId,
       tagId: tagId ?? this.tagId,
       rowid: rowid ?? this.rowid,
     );
@@ -1963,8 +2231,8 @@ class BlockTagsCompanion extends UpdateCompanion<BlockTag> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (blockId.present) {
-      map['block_id'] = Variable<int>(blockId.value);
+    if (blockTemplateId.present) {
+      map['block_template_id'] = Variable<int>(blockTemplateId.value);
     }
     if (tagId.present) {
       map['tag_id'] = Variable<int>(tagId.value);
@@ -1978,7 +2246,7 @@ class BlockTagsCompanion extends UpdateCompanion<BlockTag> {
   @override
   String toString() {
     return (StringBuffer('BlockTagsCompanion(')
-          ..write('blockId: $blockId, ')
+          ..write('blockTemplateId: $blockTemplateId, ')
           ..write('tagId: $tagId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3754,6 +4022,7 @@ class MoodLogsCompanion extends UpdateCompanion<MoodLog> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $BlockTemplatesTable blockTemplates = $BlockTemplatesTable(this);
   late final $RecurrenceRulesTable recurrenceRules = $RecurrenceRulesTable(
     this,
   );
@@ -3766,6 +4035,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TemplateBlocksTable templateBlocks = $TemplateBlocksTable(this);
   late final $DeadlineTasksTable deadlineTasks = $DeadlineTasksTable(this);
   late final $MoodLogsTable moodLogs = $MoodLogsTable(this);
+  late final BlockTemplatesDao blockTemplatesDao = BlockTemplatesDao(
+    this as AppDatabase,
+  );
   late final BlocksDao blocksDao = BlocksDao(this as AppDatabase);
   late final ChecklistItemsDao checklistItemsDao = ChecklistItemsDao(
     this as AppDatabase,
@@ -3787,6 +4059,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    blockTemplates,
     recurrenceRules,
     blocks,
     checklistItems,
@@ -3800,6 +4073,383 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
 }
 
+typedef $$BlockTemplatesTableCreateCompanionBuilder =
+    BlockTemplatesCompanion Function({
+      Value<int> id,
+      required String title,
+      required int color,
+      Value<DateTime> createdAt,
+    });
+typedef $$BlockTemplatesTableUpdateCompanionBuilder =
+    BlockTemplatesCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<int> color,
+      Value<DateTime> createdAt,
+    });
+
+final class $$BlockTemplatesTableReferences
+    extends BaseReferences<_$AppDatabase, $BlockTemplatesTable, BlockTemplate> {
+  $$BlockTemplatesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$BlocksTable, List<Block>> _blocksRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.blocks,
+    aliasName: 'block_templates__id__blocks__block_template_id',
+  );
+
+  $$BlocksTableProcessedTableManager get blocksRefs {
+    final manager = $$BlocksTableTableManager(
+      $_db,
+      $_db.blocks,
+    ).filter((f) => f.blockTemplateId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_blocksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$BlockTagsTable, List<BlockTag>>
+  _blockTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.blockTags,
+    aliasName: 'block_templates__id__block_tags__block_template_id',
+  );
+
+  $$BlockTagsTableProcessedTableManager get blockTagsRefs {
+    final manager = $$BlockTagsTableTableManager(
+      $_db,
+      $_db.blockTags,
+    ).filter((f) => f.blockTemplateId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_blockTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$BlockTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $BlockTemplatesTable> {
+  $$BlockTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> blocksRefs(
+    Expression<bool> Function($$BlocksTableFilterComposer f) f,
+  ) {
+    final $$BlocksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.blocks,
+      getReferencedColumn: (t) => t.blockTemplateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlocksTableFilterComposer(
+            $db: $db,
+            $table: $db.blocks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> blockTagsRefs(
+    Expression<bool> Function($$BlockTagsTableFilterComposer f) f,
+  ) {
+    final $$BlockTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.blockTags,
+      getReferencedColumn: (t) => t.blockTemplateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlockTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.blockTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$BlockTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BlockTemplatesTable> {
+  $$BlockTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BlockTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BlockTemplatesTable> {
+  $$BlockTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> blocksRefs<T extends Object>(
+    Expression<T> Function($$BlocksTableAnnotationComposer a) f,
+  ) {
+    final $$BlocksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.blocks,
+      getReferencedColumn: (t) => t.blockTemplateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlocksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.blocks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> blockTagsRefs<T extends Object>(
+    Expression<T> Function($$BlockTagsTableAnnotationComposer a) f,
+  ) {
+    final $$BlockTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.blockTags,
+      getReferencedColumn: (t) => t.blockTemplateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlockTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.blockTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$BlockTemplatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BlockTemplatesTable,
+          BlockTemplate,
+          $$BlockTemplatesTableFilterComposer,
+          $$BlockTemplatesTableOrderingComposer,
+          $$BlockTemplatesTableAnnotationComposer,
+          $$BlockTemplatesTableCreateCompanionBuilder,
+          $$BlockTemplatesTableUpdateCompanionBuilder,
+          (BlockTemplate, $$BlockTemplatesTableReferences),
+          BlockTemplate,
+          PrefetchHooks Function({bool blocksRefs, bool blockTagsRefs})
+        > {
+  $$BlockTemplatesTableTableManager(
+    _$AppDatabase db,
+    $BlockTemplatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BlockTemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BlockTemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BlockTemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => BlockTemplatesCompanion(
+                id: id,
+                title: title,
+                color: color,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String title,
+                required int color,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => BlockTemplatesCompanion.insert(
+                id: id,
+                title: title,
+                color: color,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BlockTemplatesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({blocksRefs = false, blockTagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (blocksRefs) db.blocks,
+                if (blockTagsRefs) db.blockTags,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (blocksRefs)
+                    await $_getPrefetchedData<
+                      BlockTemplate,
+                      $BlockTemplatesTable,
+                      Block
+                    >(
+                      currentTable: table,
+                      referencedTable: $$BlockTemplatesTableReferences
+                          ._blocksRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$BlockTemplatesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).blocksRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.blockTemplateId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                  if (blockTagsRefs)
+                    await $_getPrefetchedData<
+                      BlockTemplate,
+                      $BlockTemplatesTable,
+                      BlockTag
+                    >(
+                      currentTable: table,
+                      referencedTable: $$BlockTemplatesTableReferences
+                          ._blockTagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$BlockTemplatesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).blockTagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.blockTemplateId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BlockTemplatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BlockTemplatesTable,
+      BlockTemplate,
+      $$BlockTemplatesTableFilterComposer,
+      $$BlockTemplatesTableOrderingComposer,
+      $$BlockTemplatesTableAnnotationComposer,
+      $$BlockTemplatesTableCreateCompanionBuilder,
+      $$BlockTemplatesTableUpdateCompanionBuilder,
+      (BlockTemplate, $$BlockTemplatesTableReferences),
+      BlockTemplate,
+      PrefetchHooks Function({bool blocksRefs, bool blockTagsRefs})
+    >;
 typedef $$RecurrenceRulesTableCreateCompanionBuilder =
     RecurrenceRulesCompanion Function({
       Value<int> id,
@@ -4129,8 +4779,7 @@ typedef $$RecurrenceRulesTableProcessedTableManager =
 typedef $$BlocksTableCreateCompanionBuilder =
     BlocksCompanion Function({
       Value<int> id,
-      required String title,
-      required int color,
+      required int blockTemplateId,
       Value<DateTime?> startTime,
       Value<DateTime?> endTime,
       Value<int?> parentId,
@@ -4143,8 +4792,7 @@ typedef $$BlocksTableCreateCompanionBuilder =
 typedef $$BlocksTableUpdateCompanionBuilder =
     BlocksCompanion Function({
       Value<int> id,
-      Value<String> title,
-      Value<int> color,
+      Value<int> blockTemplateId,
       Value<DateTime?> startTime,
       Value<DateTime?> endTime,
       Value<int?> parentId,
@@ -4158,6 +4806,24 @@ typedef $$BlocksTableUpdateCompanionBuilder =
 final class $$BlocksTableReferences
     extends BaseReferences<_$AppDatabase, $BlocksTable, Block> {
   $$BlocksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BlockTemplatesTable _blockTemplateIdTable(_$AppDatabase db) => db
+      .blockTemplates
+      .createAlias('blocks__block_template_id__block_templates__id');
+
+  $$BlockTemplatesTableProcessedTableManager get blockTemplateId {
+    final $_column = $_itemColumn<int>('block_template_id')!;
+
+    final manager = $$BlockTemplatesTableTableManager(
+      $_db,
+      $_db.blockTemplates,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_blockTemplateIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static $RecurrenceRulesTable _recurrenceRuleIdTable(_$AppDatabase db) => db
       .recurrenceRules
@@ -4190,24 +4856,6 @@ final class $$BlocksTableReferences
     ).filter((f) => f.blockId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_checklistItemsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$BlockTagsTable, List<BlockTag>>
-  _blockTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.blockTags,
-    aliasName: 'blocks__id__block_tags__block_id',
-  );
-
-  $$BlockTagsTableProcessedTableManager get blockTagsRefs {
-    final manager = $$BlockTagsTableTableManager(
-      $_db,
-      $_db.blockTags,
-    ).filter((f) => f.blockId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_blockTagsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4246,16 +4894,6 @@ class $$BlocksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<DateTime> get startTime => $composableBuilder(
     column: $table.startTime,
     builder: (column) => ColumnFilters(column),
@@ -4290,6 +4928,29 @@ class $$BlocksTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$BlockTemplatesTableFilterComposer get blockTemplateId {
+    final $$BlockTemplatesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlockTemplatesTableFilterComposer(
+            $db: $db,
+            $table: $db.blockTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$RecurrenceRulesTableFilterComposer get recurrenceRuleId {
     final $$RecurrenceRulesTableFilterComposer composer = $composerBuilder(
@@ -4339,31 +5000,6 @@ class $$BlocksTableFilterComposer
     return f(composer);
   }
 
-  Expression<bool> blockTagsRefs(
-    Expression<bool> Function($$BlockTagsTableFilterComposer f) f,
-  ) {
-    final $$BlockTagsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.blockTags,
-      getReferencedColumn: (t) => t.blockId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BlockTagsTableFilterComposer(
-            $db: $db,
-            $table: $db.blockTags,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<bool> timerSessionsRefs(
     Expression<bool> Function($$TimerSessionsTableFilterComposer f) f,
   ) {
@@ -4404,16 +5040,6 @@ class $$BlocksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<DateTime> get startTime => $composableBuilder(
     column: $table.startTime,
     builder: (column) => ColumnOrderings(column),
@@ -4448,6 +5074,29 @@ class $$BlocksTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$BlockTemplatesTableOrderingComposer get blockTemplateId {
+    final $$BlockTemplatesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlockTemplatesTableOrderingComposer(
+            $db: $db,
+            $table: $db.blockTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$RecurrenceRulesTableOrderingComposer get recurrenceRuleId {
     final $$RecurrenceRulesTableOrderingComposer composer = $composerBuilder(
@@ -4485,12 +5134,6 @@ class $$BlocksTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
-
-  GeneratedColumn<int> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
-
   GeneratedColumn<DateTime> get startTime =>
       $composableBuilder(column: $table.startTime, builder: (column) => column);
 
@@ -4515,6 +5158,29 @@ class $$BlocksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$BlockTemplatesTableAnnotationComposer get blockTemplateId {
+    final $$BlockTemplatesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BlockTemplatesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.blockTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$RecurrenceRulesTableAnnotationComposer get recurrenceRuleId {
     final $$RecurrenceRulesTableAnnotationComposer composer = $composerBuilder(
@@ -4564,31 +5230,6 @@ class $$BlocksTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> blockTagsRefs<T extends Object>(
-    Expression<T> Function($$BlockTagsTableAnnotationComposer a) f,
-  ) {
-    final $$BlockTagsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.blockTags,
-      getReferencedColumn: (t) => t.blockId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BlockTagsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.blockTags,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> timerSessionsRefs<T extends Object>(
     Expression<T> Function($$TimerSessionsTableAnnotationComposer a) f,
   ) {
@@ -4629,9 +5270,9 @@ class $$BlocksTableTableManager
           (Block, $$BlocksTableReferences),
           Block,
           PrefetchHooks Function({
+            bool blockTemplateId,
             bool recurrenceRuleId,
             bool checklistItemsRefs,
-            bool blockTagsRefs,
             bool timerSessionsRefs,
           })
         > {
@@ -4649,8 +5290,7 @@ class $$BlocksTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> title = const Value.absent(),
-                Value<int> color = const Value.absent(),
+                Value<int> blockTemplateId = const Value.absent(),
                 Value<DateTime?> startTime = const Value.absent(),
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int?> parentId = const Value.absent(),
@@ -4661,8 +5301,7 @@ class $$BlocksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
               }) => BlocksCompanion(
                 id: id,
-                title: title,
-                color: color,
+                blockTemplateId: blockTemplateId,
                 startTime: startTime,
                 endTime: endTime,
                 parentId: parentId,
@@ -4675,8 +5314,7 @@ class $$BlocksTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String title,
-                required int color,
+                required int blockTemplateId,
                 Value<DateTime?> startTime = const Value.absent(),
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<int?> parentId = const Value.absent(),
@@ -4687,8 +5325,7 @@ class $$BlocksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
               }) => BlocksCompanion.insert(
                 id: id,
-                title: title,
-                color: color,
+                blockTemplateId: blockTemplateId,
                 startTime: startTime,
                 endTime: endTime,
                 parentId: parentId,
@@ -4706,16 +5343,15 @@ class $$BlocksTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                blockTemplateId = false,
                 recurrenceRuleId = false,
                 checklistItemsRefs = false,
-                blockTagsRefs = false,
                 timerSessionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (checklistItemsRefs) db.checklistItems,
-                    if (blockTagsRefs) db.blockTags,
                     if (timerSessionsRefs) db.timerSessions,
                   ],
                   addJoins:
@@ -4734,6 +5370,19 @@ class $$BlocksTableTableManager
                           dynamic
                         >
                       >(state) {
+                        if (blockTemplateId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.blockTemplateId,
+                                    referencedTable: $$BlocksTableReferences
+                                        ._blockTemplateIdTable(db),
+                                    referencedColumn: $$BlocksTableReferences
+                                        ._blockTemplateIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
                         if (recurrenceRuleId) {
                           state =
                               state.withJoin(
@@ -4767,27 +5416,6 @@ class $$BlocksTableTableManager
                                 table,
                                 p0,
                               ).checklistItemsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.blockId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (blockTagsRefs)
-                        await $_getPrefetchedData<
-                          Block,
-                          $BlocksTable,
-                          BlockTag
-                        >(
-                          currentTable: table,
-                          referencedTable: $$BlocksTableReferences
-                              ._blockTagsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$BlocksTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).blockTagsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.blockId == item.id,
@@ -4836,9 +5464,9 @@ typedef $$BlocksTableProcessedTableManager =
       (Block, $$BlocksTableReferences),
       Block,
       PrefetchHooks Function({
+        bool blockTemplateId,
         bool recurrenceRuleId,
         bool checklistItemsRefs,
-        bool blockTagsRefs,
         bool timerSessionsRefs,
       })
     >;
@@ -5441,13 +6069,13 @@ typedef $$TagsTableProcessedTableManager =
     >;
 typedef $$BlockTagsTableCreateCompanionBuilder =
     BlockTagsCompanion Function({
-      required int blockId,
+      required int blockTemplateId,
       required int tagId,
       Value<int> rowid,
     });
 typedef $$BlockTagsTableUpdateCompanionBuilder =
     BlockTagsCompanion Function({
-      Value<int> blockId,
+      Value<int> blockTemplateId,
       Value<int> tagId,
       Value<int> rowid,
     });
@@ -5456,17 +6084,18 @@ final class $$BlockTagsTableReferences
     extends BaseReferences<_$AppDatabase, $BlockTagsTable, BlockTag> {
   $$BlockTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $BlocksTable _blockIdTable(_$AppDatabase db) =>
-      db.blocks.createAlias('block_tags__block_id__blocks__id');
+  static $BlockTemplatesTable _blockTemplateIdTable(_$AppDatabase db) => db
+      .blockTemplates
+      .createAlias('block_tags__block_template_id__block_templates__id');
 
-  $$BlocksTableProcessedTableManager get blockId {
-    final $_column = $_itemColumn<int>('block_id')!;
+  $$BlockTemplatesTableProcessedTableManager get blockTemplateId {
+    final $_column = $_itemColumn<int>('block_template_id')!;
 
-    final manager = $$BlocksTableTableManager(
+    final manager = $$BlockTemplatesTableTableManager(
       $_db,
-      $_db.blocks,
+      $_db.blockTemplates,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_blockIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_blockTemplateIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -5500,20 +6129,20 @@ class $$BlockTagsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  $$BlocksTableFilterComposer get blockId {
-    final $$BlocksTableFilterComposer composer = $composerBuilder(
+  $$BlockTemplatesTableFilterComposer get blockTemplateId {
+    final $$BlockTemplatesTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.blockId,
-      referencedTable: $db.blocks,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BlocksTableFilterComposer(
+          }) => $$BlockTemplatesTableFilterComposer(
             $db: $db,
-            $table: $db.blocks,
+            $table: $db.blockTemplates,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5556,20 +6185,20 @@ class $$BlockTagsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  $$BlocksTableOrderingComposer get blockId {
-    final $$BlocksTableOrderingComposer composer = $composerBuilder(
+  $$BlockTemplatesTableOrderingComposer get blockTemplateId {
+    final $$BlockTemplatesTableOrderingComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.blockId,
-      referencedTable: $db.blocks,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BlocksTableOrderingComposer(
+          }) => $$BlockTemplatesTableOrderingComposer(
             $db: $db,
-            $table: $db.blocks,
+            $table: $db.blockTemplates,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5612,20 +6241,20 @@ class $$BlockTagsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  $$BlocksTableAnnotationComposer get blockId {
-    final $$BlocksTableAnnotationComposer composer = $composerBuilder(
+  $$BlockTemplatesTableAnnotationComposer get blockTemplateId {
+    final $$BlockTemplatesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.blockId,
-      referencedTable: $db.blocks,
+      getCurrentColumn: (t) => t.blockTemplateId,
+      referencedTable: $db.blockTemplates,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BlocksTableAnnotationComposer(
+          }) => $$BlockTemplatesTableAnnotationComposer(
             $db: $db,
-            $table: $db.blocks,
+            $table: $db.blockTemplates,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5672,7 +6301,7 @@ class $$BlockTagsTableTableManager
           $$BlockTagsTableUpdateCompanionBuilder,
           (BlockTag, $$BlockTagsTableReferences),
           BlockTag,
-          PrefetchHooks Function({bool blockId, bool tagId})
+          PrefetchHooks Function({bool blockTemplateId, bool tagId})
         > {
   $$BlockTagsTableTableManager(_$AppDatabase db, $BlockTagsTable table)
     : super(
@@ -5687,21 +6316,21 @@ class $$BlockTagsTableTableManager
               $$BlockTagsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> blockId = const Value.absent(),
+                Value<int> blockTemplateId = const Value.absent(),
                 Value<int> tagId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BlockTagsCompanion(
-                blockId: blockId,
+                blockTemplateId: blockTemplateId,
                 tagId: tagId,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                required int blockId,
+                required int blockTemplateId,
                 required int tagId,
                 Value<int> rowid = const Value.absent(),
               }) => BlockTagsCompanion.insert(
-                blockId: blockId,
+                blockTemplateId: blockTemplateId,
                 tagId: tagId,
                 rowid: rowid,
               ),
@@ -5713,7 +6342,7 @@ class $$BlockTagsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({blockId = false, tagId = false}) {
+          prefetchHooksCallback: ({blockTemplateId = false, tagId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -5733,15 +6362,15 @@ class $$BlockTagsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (blockId) {
+                    if (blockTemplateId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.blockId,
+                                currentColumn: table.blockTemplateId,
                                 referencedTable: $$BlockTagsTableReferences
-                                    ._blockIdTable(db),
+                                    ._blockTemplateIdTable(db),
                                 referencedColumn: $$BlockTagsTableReferences
-                                    ._blockIdTable(db)
+                                    ._blockTemplateIdTable(db)
                                     .id,
                               )
                               as T;
@@ -5783,7 +6412,7 @@ typedef $$BlockTagsTableProcessedTableManager =
       $$BlockTagsTableUpdateCompanionBuilder,
       (BlockTag, $$BlockTagsTableReferences),
       BlockTag,
-      PrefetchHooks Function({bool blockId, bool tagId})
+      PrefetchHooks Function({bool blockTemplateId, bool tagId})
     >;
 typedef $$TimerSessionsTableCreateCompanionBuilder =
     TimerSessionsCompanion Function({
@@ -7109,6 +7738,8 @@ typedef $$MoodLogsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$BlockTemplatesTableTableManager get blockTemplates =>
+      $$BlockTemplatesTableTableManager(_db, _db.blockTemplates);
   $$RecurrenceRulesTableTableManager get recurrenceRules =>
       $$RecurrenceRulesTableTableManager(_db, _db.recurrenceRules);
   $$BlocksTableTableManager get blocks =>

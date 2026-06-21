@@ -8,6 +8,11 @@ void main() {
   setUp(() => db = AppDatabase.forTesting());
   tearDown(() => db.close());
 
+  Future<int> makeTemplate(String title) =>
+      db.blockTemplatesDao.insertTemplate(
+        BlockTemplatesCompanion.insert(title: title, color: 0xFF4CAF50),
+      );
+
   group('TagsDao - 태그 추가/조회', () {
     test('insert and retrieve tags', () async {
       await db.tagsDao.insertTag(
@@ -19,27 +24,32 @@ void main() {
       expect(all.map((t) => t.name), containsAll(['공부', '운동']));
     });
 
-    test('attach tag to block and query', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('블록'),
-        color: Value(0xFFFFFFFF),
-      ));
+    test('attach tag to template and query', () async {
+      final templateId = await makeTemplate('블록 템플릿');
       final tagId = await db.tagsDao.insertTag(
           const TagsCompanion(name: Value('중요'), color: Value(0xFFF44336)));
 
-      await db.tagsDao.attachTagToBlock(blockId, tagId);
+      await db.tagsDao.attachTagToTemplate(templateId, tagId);
 
-      final tagsForBlock = await db.tagsDao.getTagsForBlock(blockId);
-      expect(tagsForBlock.length, 1);
-      expect(tagsForBlock.first.name, '중요');
+      final tagsForTemplate =
+          await db.tagsDao.getTagsForTemplate(templateId);
+      expect(tagsForTemplate.length, 1);
+      expect(tagsForTemplate.first.name, '중요');
     });
 
-    test('block with no tags returns empty list', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('태그없는블록'),
-        color: Value(0xFFFFFFFF),
-      ));
-      final tags = await db.tagsDao.getTagsForBlock(blockId);
+    test('template with no tags returns empty list', () async {
+      final templateId = await makeTemplate('태그없는템플릿');
+      final tags = await db.tagsDao.getTagsForTemplate(templateId);
+      expect(tags, isEmpty);
+    });
+
+    test('detach tag from template', () async {
+      final templateId = await makeTemplate('태그 떼기 테스트');
+      final tagId = await db.tagsDao.insertTag(
+          const TagsCompanion(name: Value('임시'), color: Value(0xFF9E9E9E)));
+      await db.tagsDao.attachTagToTemplate(templateId, tagId);
+      await db.tagsDao.detachTagFromTemplate(templateId, tagId);
+      final tags = await db.tagsDao.getTagsForTemplate(templateId);
       expect(tags, isEmpty);
     });
   });

@@ -3,20 +3,28 @@ import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/domain/services/block_validator.dart';
 import 'package:planner_app/main.dart';
 
-/// Top-level (no parent) blocks for a given calendar day.
-final blocksForDayProvider = StreamProvider.family<List<Block>, DateTime>(
+/// Top-level blocks with their templates for a given calendar day.
+final blocksForDayProvider =
+    StreamProvider.family<List<(Block, BlockTemplate)>, DateTime>(
   (ref, date) {
     final db = ref.watch(databaseProvider);
     return db.blocksDao.watchTopLevelBlocksForDay(date);
   },
 );
 
-/// Child blocks (by time or index) for a given parent block ID.
-final childBlocksProvider = StreamProvider.family<List<Block>, int>(
+/// Child blocks with their templates for a given parent block ID.
+final childBlocksProvider =
+    StreamProvider.family<List<(Block, BlockTemplate)>, int>(
   (ref, parentId) {
     final db = ref.watch(databaseProvider);
     return db.blocksDao.watchChildBlocks(parentId);
   },
+);
+
+/// All block templates (ordered by title).
+final blockTemplatesProvider = StreamProvider<List<BlockTemplate>>(
+  (ref) =>
+      ref.watch(databaseProvider).blockTemplatesDao.watchAllTemplates(),
 );
 
 /// All tags available in the DB (for the tag picker).
@@ -24,10 +32,10 @@ final allTagsProvider = StreamProvider<List<Tag>>(
   (ref) => ref.watch(databaseProvider).tagsDao.watchAllTags(),
 );
 
-/// Tags currently attached to a specific block.
-final tagsForBlockProvider = FutureProvider.family<List<Tag>, int>(
-  (ref, blockId) =>
-      ref.watch(databaseProvider).tagsDao.getTagsForBlock(blockId),
+/// Tags currently attached to a specific template.
+final tagsForTemplateProvider = FutureProvider.family<List<Tag>, int>(
+  (ref, templateId) =>
+      ref.watch(databaseProvider).tagsDao.getTagsForTemplate(templateId),
 );
 
 /// Checklist items for a given block, streamed for live updates.
@@ -37,18 +45,19 @@ final checklistItemsProvider =
       ref.watch(databaseProvider).checklistItemsDao.watchItemsByBlock(blockId),
 );
 
-/// Finds all overlapping pairs among [blocks].
-List<(Block, Block)> findOverlaps(List<Block> blocks) {
-  final result = <(Block, Block)>[];
-  for (int i = 0; i < blocks.length; i++) {
-    for (int j = i + 1; j < blocks.length; j++) {
+/// Finds all overlapping pairs among block+template pairs.
+List<((Block, BlockTemplate), (Block, BlockTemplate))> findOverlaps(
+    List<(Block, BlockTemplate)> pairs) {
+  final result = <((Block, BlockTemplate), (Block, BlockTemplate))>[];
+  for (int i = 0; i < pairs.length; i++) {
+    for (int j = i + 1; j < pairs.length; j++) {
       if (BlockValidator.timesOverlap(
-        start1: blocks[i].startTime,
-        end1: blocks[i].endTime,
-        start2: blocks[j].startTime,
-        end2: blocks[j].endTime,
+        start1: pairs[i].$1.startTime,
+        end1: pairs[i].$1.endTime,
+        start2: pairs[j].$1.startTime,
+        end2: pairs[j].$1.endTime,
       )) {
-        result.add((blocks[i], blocks[j]));
+        result.add((pairs[i], pairs[j]));
       }
     }
   }

@@ -4,14 +4,18 @@ import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 import 'package:planner_app/presentation/providers/calendar_provider.dart';
+import 'package:planner_app/presentation/screens/block_edit_screen.dart';
 
-/// Screen for setting the "next block" chain (habit stacking).
-/// Shows the full ordered chain starting from [root], and lets the user
-/// append, remove, or re-order the chain via setNextBlock().
+/// Screen for viewing and editing the "next block" chain (habit stacking).
 class HabitStackScreen extends ConsumerWidget {
   final Block root;
+  final BlockTemplate rootTemplate;
 
-  const HabitStackScreen({super.key, required this.root});
+  const HabitStackScreen({
+    super.key,
+    required this.root,
+    required this.rootTemplate,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,18 +23,18 @@ class HabitStackScreen extends ConsumerWidget {
     final blocksAsync = ref.watch(blocksForDayProvider(date));
 
     return Scaffold(
-      appBar: AppBar(title: Text('습관 스태킹 — ${root.title}')),
+      appBar: AppBar(title: Text('습관 스태킹 — ${rootTemplate.title}')),
       body: blocksAsync.when(
-        data: (allBlocks) {
-          final chain = _buildChain(root, allBlocks);
-          final available = allBlocks
-              .where((b) => b.id != root.id && !chain.contains(b))
-              .toList();
+        data: (allPairs) {
+          final byId = {for (final p in allPairs) p.$1.id: p};
+          final chain = _buildChain(root, byId);
+          final chainIds = chain.map((p) => p.$1.id).toSet();
+          final available =
+              allPairs.where((p) => !chainIds.contains(p.$1.id)).toList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Chain display ──────────────────────────────────────
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -46,13 +50,15 @@ class HabitStackScreen extends ConsumerWidget {
                 child: chain.isEmpty
                     ? const Center(child: Text('연결된 블록이 없습니다.'))
                     : ReorderableListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12),
                         itemCount: chain.length,
                         itemBuilder: (_, i) => _ChainTile(
-                          key: ValueKey(chain[i].id),
-                          block: chain[i],
+                          key: ValueKey(chain[i].$1.id),
+                          block: chain[i].$1,
+                          template: chain[i].$2,
                           index: i,
-                          isRoot: chain[i].id == root.id,
+                          isRoot: chain[i].$1.id == root.id,
                           onRemoveLink: i > 0
                               ? () => _removeLink(ref, chain, i)
                               : null,
@@ -61,8 +67,6 @@ class HabitStackScreen extends ConsumerWidget {
                             _reorder(ref, chain, oldI, newI),
                       ),
               ),
-
-              // ── Append block picker ────────────────────────────────
               if (available.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -80,15 +84,16 @@ class HabitStackScreen extends ConsumerWidget {
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
-                        children: available.map((b) {
+                        children: available.map((p) {
                           return ActionChip(
                             avatar: CircleAvatar(
-                              backgroundColor: Color(b.color),
+                              backgroundColor: Color(p.$2.color),
                               radius: 8,
                             ),
-                            label: Text(b.title,
+                            label: Text(p.$2.title,
                                 style: const TextStyle(fontSize: 12)),
-                            onPressed: () => _appendBlock(ref, chain, b),
+                            onPressed: () =>
+                                _appendBlock(ref, chain, p.$1),
                           );
                         }).toList(),
                       ),
@@ -104,59 +109,54 @@ class HabitStackScreen extends ConsumerWidget {
     );
   }
 
-  /// Follows nextBlockId links from [root] to build the ordered chain.
-  List<Block> _buildChain(Block start, List<Block> all) {
-    final byId = {for (final b in all) b.id: b};
-    final chain = <Block>[];
+  List<(Block, BlockTemplate)> _buildChain(
+      Block start, Map<int, (Block, BlockTemplate)> byId) {
+    final chain = <(Block, BlockTemplate)>[];
     Block? current = start;
     final seen = <int>{};
     while (current != null && !seen.contains(current.id)) {
-      chain.add(current);
+      final pair = byId[current.id];
+      if (pair == null) break;
+      chain.add(pair);
       seen.add(current.id);
       final nextId = current.nextBlockId;
-      current = nextId != null ? byId[nextId] : null;
+      current = nextId != null ? byId[nextId]?.$1 : null;
     }
     return chain;
   }
 
-  /// Appends [next] to the end of the chain.
   Future<void> _appendBlock(
-      WidgetRef ref, List<Block> chain, Block next) async {
-    final db = ref.read(databaseProvider);
-    final tail = chain.last;
-    await db.blocksDao.setNextBlock(tail.id, next.id);
+      WidgetRef ref, List<(Block, BlockTemplate)> chain, Block next) async {
+    await ref.read(databaseProvider).blocksDao.setNextBlock(chain.last.$1.id, next.id);
   }
 
-  /// Removes the link FROM chain[index-1] TO chain[index] (detaches chain[index]).
   Future<void> _removeLink(
-      WidgetRef ref, List<Block> chain, int index) async {
-    final db = ref.read(databaseProvider);
-    // The predecessor points to null (breaks chain at [index])
-    await db.blocksDao.setNextBlock(chain[index - 1].id, null);
+      WidgetRef ref, List<(Block, BlockTemplate)> chain, int index) async {
+    await ref
+        .read(databaseProvider)
+        .blocksDao
+        .setNextBlock(chain[index - 1].$1.id, null);
   }
 
-  /// Rebuilds the nextBlockId pointers after a ReorderableListView drag.
-  Future<void> _reorder(
-      WidgetRef ref, List<Block> chain, int oldIndex, int newIndex) async {
-    if (oldIndex == newIndex) return;
-    // Root block (index 0) cannot be moved
-    if (oldIndex == 0 || newIndex == 0) return;
-
+  Future<void> _reorder(WidgetRef ref, List<(Block, BlockTemplate)> chain,
+      int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex || oldIndex == 0 || newIndex == 0) return;
     final db = ref.read(databaseProvider);
     final reordered = [...chain];
     final item = reordered.removeAt(oldIndex);
     reordered.insert(newIndex < oldIndex ? newIndex : newIndex - 1, item);
 
-    // Re-wire the chain in the new order
     for (int i = 0; i < reordered.length - 1; i++) {
-      await db.blocksDao.setNextBlock(reordered[i].id, reordered[i + 1].id);
+      await db.blocksDao
+          .setNextBlock(reordered[i].$1.id, reordered[i + 1].$1.id);
     }
-    await db.blocksDao.setNextBlock(reordered.last.id, null);
+    await db.blocksDao.setNextBlock(reordered.last.$1.id, null);
   }
 }
 
 class _ChainTile extends StatelessWidget {
   final Block block;
+  final BlockTemplate template;
   final int index;
   final bool isRoot;
   final VoidCallback? onRemoveLink;
@@ -164,6 +164,7 @@ class _ChainTile extends StatelessWidget {
   const _ChainTile({
     super.key,
     required this.block,
+    required this.template,
     required this.index,
     required this.isRoot,
     this.onRemoveLink,
@@ -171,7 +172,7 @@ class _ChainTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(block.color);
+    final color = Color(template.color);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -198,12 +199,13 @@ class _ChainTile extends StatelessWidget {
                 ),
               ),
             ),
-            title: Text(block.title),
+            title: Text(template.title),
             subtitle: block.startTime != null
                 ? Text(_fmt(block.startTime!))
                 : null,
             trailing: isRoot
-                ? const Chip(label: Text('시작', style: TextStyle(fontSize: 11)))
+                ? const Chip(
+                    label: Text('시작', style: TextStyle(fontSize: 11)))
                 : onRemoveLink != null
                     ? IconButton(
                         icon: const Icon(Icons.link_off, size: 20),
@@ -211,6 +213,13 @@ class _ChainTile extends StatelessWidget {
                         onPressed: onRemoveLink,
                       )
                     : null,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    BlockEditScreen(block: block, template: template),
+              ),
+            ),
           ),
         ),
       ],

@@ -3,27 +3,32 @@ import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/presentation/screens/block_edit_screen.dart';
 import 'package:planner_app/presentation/screens/children_screen.dart';
 
-/// A compact visual representation of a [Block] on the calendar.
-/// Height is set by the parent (DayView positions it absolutely).
-/// Tap → edit; long-press → manage children.
+/// Compact block display. Title and color come from [template]; timing from [block].
+/// Tap → edit (BlockEditScreen). Long-press → manage children (ChildrenScreen).
 class BlockTile extends StatelessWidget {
   final Block block;
+  final BlockTemplate template;
 
-  const BlockTile({super.key, required this.block});
+  const BlockTile({super.key, required this.block, required this.template});
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(block.color);
+    final color = Color(template.color);
     final textColor =
         color.computeLuminance() > 0.4 ? Colors.black87 : Colors.white;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => BlockEditScreen(block: block)),
+        MaterialPageRoute(
+          builder: (_) => BlockEditScreen(block: block, template: template),
+        ),
       ),
       onLongPress: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ChildrenScreen(parent: block)),
+        MaterialPageRoute(
+          builder: (_) =>
+              ChildrenScreen(parent: block, parentTemplate: template),
+        ),
       ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
@@ -37,7 +42,7 @@ class BlockTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              block.title,
+              template.title,
               style: TextStyle(
                 color: textColor,
                 fontWeight: FontWeight.w600,

@@ -4,6 +4,7 @@ part of 'checklist_items_dao.dart';
 
 // ignore_for_file: type=lint
 mixin _$ChecklistItemsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $BlockTemplatesTable get blockTemplates => attachedDatabase.blockTemplates;
   $RecurrenceRulesTable get recurrenceRules => attachedDatabase.recurrenceRules;
   $BlocksTable get blocks => attachedDatabase.blocks;
   $ChecklistItemsTable get checklistItems => attachedDatabase.checklistItems;
@@ -13,6 +14,11 @@ mixin _$ChecklistItemsDaoMixin on DatabaseAccessor<AppDatabase> {
 class ChecklistItemsDaoManager {
   final _$ChecklistItemsDaoMixin _db;
   ChecklistItemsDaoManager(this._db);
+  $$BlockTemplatesTableTableManager get blockTemplates =>
+      $$BlockTemplatesTableTableManager(
+        _db.attachedDatabase,
+        _db.blockTemplates,
+      );
   $$RecurrenceRulesTableTableManager get recurrenceRules =>
       $$RecurrenceRulesTableTableManager(
         _db.attachedDatabase,

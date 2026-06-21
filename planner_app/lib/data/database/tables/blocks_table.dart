@@ -1,11 +1,14 @@
 import 'package:drift/drift.dart';
 
+import 'block_templates_table.dart';
 import 'recurrence_rules_table.dart';
 
+/// A scheduled instance of a BlockTemplate placed on the calendar.
 class Blocks extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get title => text()();
-  IntColumn get color => integer()();
+  // All display info (title, color) lives on the template.
+  IntColumn get blockTemplateId =>
+      integer().references(BlockTemplates, #id)();
   DateTimeColumn get startTime => dateTime().nullable()();
   DateTimeColumn get endTime => dateTime().nullable()();
   // Self-reference: 1-level nesting limit enforced in domain layer

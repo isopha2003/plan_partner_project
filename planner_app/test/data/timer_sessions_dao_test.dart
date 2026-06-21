@@ -8,12 +8,16 @@ void main() {
   setUp(() => db = AppDatabase.forTesting());
   tearDown(() => db.close());
 
+  Future<int> makeBlock(String title, {int color = 0xFF9C27B0}) async {
+    final tid = await db.blockTemplatesDao.insertTemplate(
+      BlockTemplatesCompanion.insert(title: title, color: color),
+    );
+    return db.blocksDao.insertBlock(BlocksCompanion(blockTemplateId: Value(tid)));
+  }
+
   group('TimerSessionsDao - 세션 시작/종료', () {
     test('start and end a session', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('집중 공부'),
-        color: Value(0xFF9C27B0),
-      ));
+      final blockId = await makeBlock('집중 공부');
 
       final start = DateTime(2026, 6, 21, 10, 0);
       final end = DateTime(2026, 6, 21, 10, 50);
@@ -30,10 +34,7 @@ void main() {
     });
 
     test('running session has null endedAt', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('현재 진행중'),
-        color: Value(0xFFFFFFFF),
-      ));
+      final blockId = await makeBlock('현재 진행중', color: 0xFFFFFFFF);
       final start = DateTime(2026, 6, 21, 14, 0);
       await db.timerSessionsDao.startSession(blockId, start);
 
@@ -43,10 +44,7 @@ void main() {
     });
 
     test('multiple sessions for one block', () async {
-      final blockId = await db.blocksDao.insertBlock(const BlocksCompanion(
-        title: Value('반복 집중'),
-        color: Value(0xFFFFFFFF),
-      ));
+      final blockId = await makeBlock('반복 집중', color: 0xFFFFFFFF);
       await db.timerSessionsDao
           .startSession(blockId, DateTime(2026, 6, 21, 9, 0));
       await db.timerSessionsDao

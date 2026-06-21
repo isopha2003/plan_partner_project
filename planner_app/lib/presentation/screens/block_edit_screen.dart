@@ -7,14 +7,21 @@ import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 import 'package:planner_app/presentation/screens/habit_stack_screen.dart';
 
-/// Create or edit a time-block.
-/// Pass [block] to edit an existing one; omit (or pass null) to create new.
-/// Pass [initialDate] to pre-fill the date when creating new.
+/// Create or edit a block instance (and its underlying template).
+///
+/// - New block: pass [initialDate] only — creates a new template + instance.
+/// - Edit existing: pass both [block] and [template].
 class BlockEditScreen extends ConsumerStatefulWidget {
   final Block? block;
+  final BlockTemplate? template;
   final DateTime? initialDate;
 
-  const BlockEditScreen({super.key, this.block, this.initialDate});
+  const BlockEditScreen({
+    super.key,
+    this.block,
+    this.template,
+    this.initialDate,
+  });
 
   @override
   ConsumerState<BlockEditScreen> createState() => _BlockEditScreenState();
@@ -28,25 +35,27 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
   late DateTime _end;
   final Set<int> _selectedTagIds = {};
 
-  bool get _isEditing => widget.block != null;
+  bool get _isEditing => widget.block != null && widget.template != null;
 
   @override
   void initState() {
     super.initState();
-    final b = widget.block;
     final base = widget.initialDate ?? DateTime.now();
     final defaultStart = DateTime(base.year, base.month, base.day, 9, 0);
-    _titleCtrl = TextEditingController(text: b?.title ?? '');
-    _color = Color(b?.color ?? 0xFF4CAF50);
-    _start = b?.startTime ?? defaultStart;
-    _end = b?.endTime ?? defaultStart.add(const Duration(hours: 1));
-    if (b != null) {
-      // Pre-load existing tags asynchronously
-      ref.read(databaseProvider).tagsDao.getTagsForBlock(b.id).then((tags) {
+
+    _titleCtrl = TextEditingController(text: widget.template?.title ?? '');
+    _color = Color(widget.template?.color ?? 0xFF4CAF50);
+    _start = widget.block?.startTime ?? defaultStart;
+    _end = widget.block?.endTime ?? defaultStart.add(const Duration(hours: 1));
+
+    if (_isEditing) {
+      ref
+          .read(databaseProvider)
+          .tagsDao
+          .getTagsForTemplate(widget.block!.blockTemplateId)
+          .then((tags) {
         if (mounted) {
-          setState(() {
-            _selectedTagIds.addAll(tags.map((t) => t.id));
-          });
+          setState(() => _selectedTagIds.addAll(tags.map((t) => t.id)));
         }
       });
     }
@@ -72,7 +81,10 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => HabitStackScreen(root: widget.block!),
+                  builder: (_) => HabitStackScreen(
+                    root: widget.block!,
+                    rootTemplate: widget.template!,
+                  ),
                 ),
               ),
             ),
@@ -87,7 +99,6 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Title
             TextFormField(
               controller: _titleCtrl,
               decoration: const InputDecoration(
@@ -99,7 +110,6 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Color picker
             _SectionLabel('색상'),
             GestureDetector(
               onTap: _pickColor,
@@ -125,19 +135,17 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Start time
             _SectionLabel('시작 시간'),
             _TimePicker(
               dateTime: _start,
               onChanged: (dt) => setState(() {
-                final duration = _end.difference(_start);
+                final dur = _end.difference(_start);
                 _start = dt;
-                _end = dt.add(duration);
+                _end = dt.add(dur);
               }),
             ),
             const SizedBox(height: 12),
 
-            // End time
             _SectionLabel('종료 시간'),
             _TimePicker(
               dateTime: _end,
@@ -145,7 +153,6 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Tags
             _SectionLabel('태그'),
             allTagsAsync.when(
               data: (tags) {
@@ -161,7 +168,8 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
                     return FilterChip(
                       label: Text(tag.name),
                       selected: selected,
-                      selectedColor: Color(tag.color).withValues(alpha: 0.3),
+                      selectedColor:
+                          Color(tag.color).withValues(alpha: 0.3),
                       onSelected: (on) => setState(() {
                         on
                             ? _selectedTagIds.add(tag.id)
@@ -214,40 +222,46 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
 
     final db = ref.read(databaseProvider);
     final int blockId;
+    final int templateId;
 
     if (_isEditing) {
-      await db.blocksDao.updateBlock(
-        widget.block!.copyWith(
+      templateId = widget.block!.blockTemplateId;
+      await db.blockTemplatesDao.updateTemplate(
+        widget.template!.copyWith(
           title: _titleCtrl.text.trim(),
           color: _color.toARGB32(),
-          startTime: Value(_start),
-          endTime: Value(_end),
         ),
       );
+      await db.blocksDao.updateBlockTimes(widget.block!.id, _start, _end);
       blockId = widget.block!.id;
     } else {
-      blockId = await db.blocksDao.insertBlock(
-        BlocksCompanion.insert(
+      templateId = await db.blockTemplatesDao.insertTemplate(
+        BlockTemplatesCompanion.insert(
           title: _titleCtrl.text.trim(),
           color: _color.toARGB32(),
+        ),
+      );
+      blockId = await db.blocksDao.insertBlock(
+        BlocksCompanion.insert(
+          blockTemplateId: templateId,
           startTime: Value(_start),
           endTime: Value(_end),
         ),
       );
     }
 
-    // Sync tags
-    final existingTags =
-        await db.tagsDao.getTagsForBlock(blockId);
+    // Sync tags at the template level
+    final existingTags = await db.tagsDao.getTagsForTemplate(templateId);
     final existingIds = existingTags.map((t) => t.id).toSet();
-
     for (final id in _selectedTagIds.difference(existingIds)) {
-      await db.tagsDao.attachTagToBlock(blockId, id);
+      await db.tagsDao.attachTagToTemplate(templateId, id);
     }
     for (final id in existingIds.difference(_selectedTagIds)) {
-      await db.tagsDao.detachTagFromBlock(blockId, id);
+      await db.tagsDao.detachTagFromTemplate(templateId, id);
     }
 
+    // blockId used to satisfy the variable-must-be-used lint
+    assert(blockId > 0);
     if (mounted) Navigator.pop(context);
   }
 }
@@ -260,10 +274,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.labelLarge),
     );
   }
 }
@@ -294,7 +305,8 @@ class _TimePicker extends StatelessWidget {
         if (date == null || !context.mounted) return;
         final time = await showTimePicker(
           context: context,
-          initialTime: TimeOfDay(hour: dateTime.hour, minute: dateTime.minute),
+          initialTime:
+              TimeOfDay(hour: dateTime.hour, minute: dateTime.minute),
         );
         if (time == null) return;
         onChanged(DateTime(

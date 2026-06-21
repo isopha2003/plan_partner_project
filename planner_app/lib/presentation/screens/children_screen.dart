@@ -9,8 +9,13 @@ import 'package:planner_app/presentation/screens/block_edit_screen.dart';
 /// Screen for managing a block's children: child time-blocks and checklist items.
 class ChildrenScreen extends ConsumerWidget {
   final Block parent;
+  final BlockTemplate parentTemplate;
 
-  const ChildrenScreen({super.key, required this.parent});
+  const ChildrenScreen({
+    super.key,
+    required this.parent,
+    required this.parentTemplate,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,33 +23,27 @@ class ChildrenScreen extends ConsumerWidget {
     final checklistAsync = ref.watch(checklistItemsProvider(parent.id));
 
     return Scaffold(
-      appBar: AppBar(title: Text('${parent.title} — 자식 블록')),
+      appBar: AppBar(title: Text('${parentTemplate.title} — 자식 블록')),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // ── Child time-blocks ──────────────────────────────────────
+          // ── Child time-blocks ─────────────────────────────────────
           _SectionHeader(
             title: '자식 타임블록',
             onAdd: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => BlockEditScreen(
-                  initialDate: parent.startTime,
-                ),
+                builder: (_) =>
+                    BlockEditScreen(initialDate: parent.startTime),
               ),
-            ).then((_) async {
-              // After creating the block, wire it to the parent if user created one
-              // (BlockEditScreen doesn't set parentId — we handle that here via a
-              // post-creation pick dialog, but for now the child is created without
-              // parentId. Future enhancement: pass parentId into BlockEditScreen.)
-            }),
+            ),
           ),
           childBlocksAsync.when(
-            data: (children) => children.isEmpty
+            data: (pairs) => pairs.isEmpty
                 ? const _EmptyHint('자식 타임블록이 없습니다.')
                 : Column(
-                    children: children
-                        .map((b) => _ChildBlockTile(block: b, parentId: parent.id))
+                    children: pairs
+                        .map((p) => _ChildBlockTile(block: p.$1, template: p.$2))
                         .toList(),
                   ),
             loading: () => const LinearProgressIndicator(),
@@ -52,7 +51,7 @@ class ChildrenScreen extends ConsumerWidget {
           ),
           const Divider(height: 32),
 
-          // ── Checklist items ────────────────────────────────────────
+          // ── Checklist items ───────────────────────────────────────
           _SectionHeader(
             title: '체크리스트',
             onAdd: () => _addChecklistItem(context, ref),
@@ -113,17 +112,17 @@ class ChildrenScreen extends ConsumerWidget {
   }
 }
 
-// ─── Child block tile ──────────────────────────────────────────────────────
+// ─── Child block tile ────────────────────────────────────────────────────────
 
 class _ChildBlockTile extends ConsumerWidget {
   final Block block;
-  final int parentId;
+  final BlockTemplate template;
 
-  const _ChildBlockTile({required this.block, required this.parentId});
+  const _ChildBlockTile({required this.block, required this.template});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = Color(block.color);
+    final color = Color(template.color);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
@@ -135,21 +134,20 @@ class _ChildBlockTile extends ConsumerWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        title: Text(block.title),
+        title: Text(template.title),
         subtitle: block.startTime != null
             ? Text(_formatTime(block.startTime!, block.endTime))
             : null,
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline, size: 20),
-          onPressed: () => ref
-              .read(databaseProvider)
-              .blocksDao
-              .deleteBlock(block.id),
+          onPressed: () =>
+              ref.read(databaseProvider).blocksDao.deleteBlock(block.id),
         ),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => BlockEditScreen(block: block),
+            builder: (_) =>
+                BlockEditScreen(block: block, template: template),
           ),
         ),
       ),
@@ -163,7 +161,7 @@ class _ChildBlockTile extends ConsumerWidget {
   }
 }
 
-// ─── Checklist item tile ──────────────────────────────────────────────────
+// ─── Checklist item tile ─────────────────────────────────────────────────────
 
 class _ChecklistItemTile extends ConsumerWidget {
   final ChecklistItem item;
@@ -200,7 +198,7 @@ class _ChecklistItemTile extends ConsumerWidget {
   }
 }
 
-// ─── Shared helpers ────────────────────────────────────────────────────────
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;

@@ -2,19 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/domain/services/recurrence_generator.dart';
 
-// Helper to build a minimal Block for use as template
+// Helper to build a minimal Block (blockTemplateId=1 is a placeholder for tests).
 Block _makeBlock({
   int id = 1,
-  String title = '운동',
-  int color = 0xFF4CAF50,
+  int blockTemplateId = 1,
   DateTime? startTime,
   DateTime? endTime,
   int? recurrenceRuleId,
 }) =>
     Block(
       id: id,
-      title: title,
-      color: color,
+      blockTemplateId: blockTemplateId,
       startTime: startTime,
       endTime: endTime,
       parentId: null,
@@ -61,7 +59,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: monday,
         daysAhead: 28,
       );
@@ -83,7 +81,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: monday,
         daysAhead: 28,
       );
@@ -108,7 +106,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: monday,
         daysAhead: 7,
       );
@@ -127,7 +125,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: DateTime(2026, 6, 21),
         daysAhead: 7,
       );
@@ -146,7 +144,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: monday,
         daysAhead: 28,
       );
@@ -166,7 +164,7 @@ void main() {
 
       final instances = RecurrenceGenerator.generate(
         rule: rule,
-        template: template,
+        sourceBlock: template,
         from: monday,
         daysAhead: 28,
       );
