@@ -74,6 +74,7 @@
 - [x] BlockEditScreen 완료 토글 추가 — 편집 모드에서 SwitchListTile로 즉시 setBlockCompleted 호출
 - [x] 캘린더 그리드/리스트 뷰 토글 — AppBar 아이콘으로 전환, 리스트 뷰는 선택 날짜 블록을 체크리스트로 표시 (BlockCheckTile 재사용)
 - [x] 주/월 뷰 반복 블록 표시 버그 수정 — _DayColumn/_DayCell에 ValueKey(date) 추가, 블록 아이템에 ValueKey(block.id) 추가로 위젯 identity 보장
+- [x] 리스트 뷰 주/월/년 범위 표시 버그 수정 — CalendarListView(from, to)로 재설계, watchBlocksInRange로 기간 전체를 단일 스트림 쿼리 후 날짜별 섹션 분리
 
 ---
 

@@ -62,6 +62,17 @@ final sessionsForDayProvider =
       ref.watch(databaseProvider).timerSessionsDao.watchSessionsForDay(date),
 );
 
+/// All top-level blocks in a date range — for calendar list view.
+/// Family parameter is a (from, to) record; Dart 3 records use structural
+/// equality, so Riverpod correctly caches one provider per unique range.
+final blocksInRangeProvider =
+    StreamProvider.family<List<(Block, BlockTemplate)>, (DateTime, DateTime)>(
+  (ref, range) {
+    final db = ref.watch(databaseProvider);
+    return db.blocksDao.watchBlocksInRange(range.$1, range.$2);
+  },
+);
+
 /// Incomplete top-level blocks from before today (streamed).
 final incompletePastBlocksProvider =
     StreamProvider<List<(Block, BlockTemplate)>>(

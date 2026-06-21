@@ -86,7 +86,7 @@ class CalendarScreen extends ConsumerWidget {
           key: ValueKey(
               '${state.isListView}-${state.viewMode}-${state.selectedDate}'),
           child: state.isListView
-              ? DayListView(date: state.selectedDate)
+              ? _buildListView(state)
               : _buildBody(state),
         ),
       ),
@@ -96,6 +96,35 @@ class CalendarScreen extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  /// Computes the correct [from, to] range for the current view mode and
+  /// returns a [CalendarListView] that queries all blocks in that range.
+  Widget _buildListView(CalendarState state) {
+    final d = state.selectedDate;
+    final DateTime from;
+    final DateTime to;
+
+    switch (state.viewMode) {
+      case CalendarViewMode.day:
+        from = DateTime(d.year, d.month, d.day);
+        to = DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
+      case CalendarViewMode.week:
+        final monday = d.subtract(Duration(days: d.weekday - 1));
+        final sunday = monday.add(const Duration(days: 6));
+        from = monday;
+        to = DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999);
+      case CalendarViewMode.month:
+        from = DateTime(d.year, d.month, 1);
+        // DateTime(year, month+1, 0) gives the last day of the month.
+        final lastDay = DateTime(d.year, d.month + 1, 0);
+        to = DateTime(lastDay.year, lastDay.month, lastDay.day, 23, 59, 59, 999);
+      case CalendarViewMode.year:
+        from = DateTime(d.year, 1, 1);
+        to = DateTime(d.year, 12, 31, 23, 59, 59, 999);
+    }
+
+    return CalendarListView(from: from, to: to);
   }
 
   Widget _buildBody(CalendarState state) {

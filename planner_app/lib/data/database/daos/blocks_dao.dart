@@ -103,6 +103,25 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
         BlocksCompanion(nextBlockId: Value(nextId)),
       );
 
+  /// All top-level blocks whose startTime falls within [from, to].
+  /// Used by the calendar list view for week / month / year range display.
+  Stream<List<(Block, BlockTemplate)>> watchBlocksInRange(
+      DateTime from, DateTime to) {
+    final query = select(blocks).join([
+      innerJoin(
+          blockTemplates, blockTemplates.id.equalsExp(blocks.blockTemplateId)),
+    ])
+      ..where(
+        blocks.startTime.isBiggerOrEqualValue(from) &
+            blocks.startTime.isSmallerOrEqualValue(to) &
+            blocks.parentId.isNull(),
+      )
+      ..orderBy([OrderingTerm.asc(blocks.startTime)]);
+    return query.watch().map((rows) => rows
+        .map((r) => (r.readTable(blocks), r.readTable(blockTemplates)))
+        .toList());
+  }
+
   /// Incomplete top-level blocks whose startTime is before [before].
   /// Used for the "아직 끝내지 못한 일" section.
   Stream<List<(Block, BlockTemplate)>> watchIncompletePastBlocks(
