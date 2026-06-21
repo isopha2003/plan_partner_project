@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/domain/entities/day_activity.dart';
 import 'package:planner_app/domain/services/stats_calculator.dart';
+import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 
 /// Statistics screen — built up incrementally:
@@ -20,7 +22,9 @@ class StatsScreen extends ConsumerWidget {
           _GrassSection(),
           Divider(height: 32),
           _TodayStatsSection(),
-          SizedBox(height: 24),
+          Divider(height: 32),
+          _UnfinishedSection(),
+          SizedBox(height: 32),
         ],
       ),
     );
@@ -401,5 +405,137 @@ class _CompletionBar extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ── Unfinished work section ───────────────────────────────────────────────────
+
+class _UnfinishedSection extends ConsumerWidget {
+  const _UnfinishedSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final itemsAsync = ref.watch(incompletePastBlocksProvider);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '아직 끝내지 못한 일',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          itemsAsync.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (e, _) => Text('오류: $e'),
+            data: (pairs) {
+              if (pairs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          color: Colors.green.shade400, size: 20),
+                      const SizedBox(width: 8),
+                      Text('미완료 항목이 없어요!',
+                          style: TextStyle(
+                              color: Colors.grey[500], fontSize: 14)),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                children: pairs
+                    .map((p) =>
+                        _UnfinishedTile(block: p.$1, template: p.$2))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnfinishedTile extends ConsumerWidget {
+  final Block block;
+  final BlockTemplate template;
+
+  const _UnfinishedTile({required this.block, required this.template});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final color = Color(template.color);
+    final start = block.startTime;
+    final dateStr = start == null
+        ? ''
+        : '${start.year}.${start.month.toString().padLeft(2, '0')}.${start.day.toString().padLeft(2, '0')}';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 4,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        title: Text(template.title,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: dateStr.isNotEmpty
+            ? Text(dateStr, style: const TextStyle(fontSize: 12))
+            : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.check_circle_outline,
+                  color: Colors.green.shade600, size: 22),
+              tooltip: '완료 처리',
+              onPressed: () => ref
+                  .read(databaseProvider)
+                  .blocksDao
+                  .updateBlock(block.copyWith(isCompleted: true)),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline,
+                  color: Colors.red.shade300, size: 22),
+              tooltip: '삭제',
+              onPressed: () => _confirmDelete(context, ref),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('블록 삭제'),
+        content: Text('\'${template.title}\' 블록을 삭제할까요?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('삭제',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      ref.read(databaseProvider).blocksDao.deleteBlock(block.id);
+    }
   }
 }
