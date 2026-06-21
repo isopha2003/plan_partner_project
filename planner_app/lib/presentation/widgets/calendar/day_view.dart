@@ -149,19 +149,22 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
   Widget _draggableBlock(Block b) {
     final topMinutes = b.startTime!.hour * 60 + b.startTime!.minute;
     final top = topMinutes * DayView.hourHeight / 60.0;
+    // Height is proportional to duration: 1 minute = 1 px (hourHeight = 60 px/hr)
+    final durationMin = b.endTime!.difference(b.startTime!).inMinutes;
+    final height = (durationMin * DayView.hourHeight / 60.0).clamp(22.0, double.infinity);
 
     final tile = BlockTile(block: b);
     return Positioned(
       top: top,
       left: 4,
       right: 4,
-      height: 48, // fixed placeholder; Task 3 replaces with proportional height
+      height: height,
       child: LongPressDraggable<Block>(
         data: b,
         delay: const Duration(milliseconds: 400),
         feedback: SizedBox(
           width: 160,
-          height: 48,
+          height: height.clamp(48.0, 120.0),
           child: Material(
             elevation: 6,
             borderRadius: BorderRadius.circular(6),
