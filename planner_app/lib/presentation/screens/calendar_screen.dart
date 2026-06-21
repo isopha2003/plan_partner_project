@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/presentation/providers/calendar_provider.dart';
+import 'package:planner_app/presentation/screens/block_edit_screen.dart';
 import 'package:planner_app/presentation/widgets/calendar/day_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/week_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/month_view.dart';
@@ -102,8 +103,11 @@ class CalendarScreen extends ConsumerWidget {
   }
 
   void _openCreateBlock(BuildContext context, DateTime date) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('블록 생성 화면은 Task 5에서 구현합니다')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlockEditScreen(initialDate: date),
+      ),
     );
   }
 }
