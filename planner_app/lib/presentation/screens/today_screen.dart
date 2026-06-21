@@ -4,6 +4,7 @@ import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/domain/services/deadline_calculator.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
+import 'package:planner_app/presentation/widgets/block_check_tile.dart';
 
 // Reactive stream of today's due / overdue incomplete deadline tasks.
 final _todayDeadlineProvider = StreamProvider<List<DeadlineTask>>((ref) {
@@ -62,7 +63,7 @@ class TodayScreen extends ConsumerWidget {
               }
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (_, i) => _BlockCheckItem(
+                  (_, i) => BlockCheckTile(
                     block: pairs[i].$1,
                     template: pairs[i].$2,
                   ),
@@ -139,62 +140,6 @@ class _EmptyBlocks extends StatelessWidget {
           ],
         ),
       );
-}
-
-// ── Block item with completion checkbox ───────────────────────────────────────
-
-class _BlockCheckItem extends ConsumerWidget {
-  final Block block;
-  final BlockTemplate template;
-
-  const _BlockCheckItem({required this.block, required this.template});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final color = Color(template.color);
-    final done = block.isCompleted;
-
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: Container(
-        width: 4,
-        height: 48,
-        decoration: BoxDecoration(
-          color: done ? color.withValues(alpha: 0.3) : color,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      title: Text(
-        template.title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: done ? Colors.grey[400] : null,
-          decoration: done ? TextDecoration.lineThrough : null,
-          decorationColor: Colors.grey[400],
-        ),
-      ),
-      subtitle: block.startTime != null && block.endTime != null
-          ? Text(
-              '${_fmt(block.startTime!)} – ${_fmt(block.endTime!)}',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: done ? Colors.grey[400] : Colors.grey[600]),
-            )
-          : null,
-      trailing: Checkbox(
-        value: done,
-        activeColor: color,
-        onChanged: (v) => ref
-            .read(databaseProvider)
-            .blocksDao
-            .setBlockCompleted(block.id, v ?? false),
-      ),
-    );
-  }
-
-  static String _fmt(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
 
 // ── Deadline task item ────────────────────────────────────────────────────────

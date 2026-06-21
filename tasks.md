@@ -72,6 +72,7 @@
 - [x] 마감 작업 → 타임블록 전환 기능 — verify: 전환 후 데이터 일관성 확인
 - [x] "오늘" 화면 신설 (첫 번째 탭) — 오늘의 블록 체크리스트 + 오늘/마감지난 데드라인 작업 표시, setBlockCompleted 즉시 반응
 - [x] BlockEditScreen 완료 토글 추가 — 편집 모드에서 SwitchListTile로 즉시 setBlockCompleted 호출
+- [x] 캘린더 그리드/리스트 뷰 토글 — AppBar 아이콘으로 전환, 리스트 뷰는 선택 날짜 블록을 체크리스트로 표시 (BlockCheckTile 재사용)
 
 ---
 

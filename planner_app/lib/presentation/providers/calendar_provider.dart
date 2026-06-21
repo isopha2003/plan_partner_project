@@ -5,16 +5,23 @@ enum CalendarViewMode { day, week, month, year }
 class CalendarState {
   final DateTime selectedDate;
   final CalendarViewMode viewMode;
+  final bool isListView;
 
   const CalendarState({
     required this.selectedDate,
     required this.viewMode,
+    this.isListView = false,
   });
 
-  CalendarState copyWith({DateTime? selectedDate, CalendarViewMode? viewMode}) =>
+  CalendarState copyWith({
+    DateTime? selectedDate,
+    CalendarViewMode? viewMode,
+    bool? isListView,
+  }) =>
       CalendarState(
         selectedDate: selectedDate ?? this.selectedDate,
         viewMode: viewMode ?? this.viewMode,
+        isListView: isListView ?? this.isListView,
       );
 }
 
@@ -35,6 +42,9 @@ class CalendarNotifier extends Notifier<CalendarState> {
 
   void setViewMode(CalendarViewMode mode) =>
       state = state.copyWith(viewMode: mode);
+
+  void toggleListView() =>
+      state = state.copyWith(isListView: !state.isListView);
 
   void goToToday() {
     final now = DateTime.now();

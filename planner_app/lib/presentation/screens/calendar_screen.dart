@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/presentation/providers/calendar_provider.dart';
 import 'package:planner_app/presentation/screens/block_edit_screen.dart';
 import 'package:planner_app/presentation/screens/schedule_templates_screen.dart';
+import 'package:planner_app/presentation/widgets/calendar/day_list_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/day_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/week_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/month_view.dart';
@@ -33,6 +34,13 @@ class CalendarScreen extends ConsumerWidget {
             icon: const Icon(Icons.today),
             onPressed: notifier.goToToday,
             tooltip: '오늘',
+          ),
+          IconButton(
+            icon: Icon(state.isListView
+                ? Icons.grid_view
+                : Icons.format_list_bulleted),
+            tooltip: state.isListView ? '그리드 뷰' : '리스트 뷰',
+            onPressed: notifier.toggleListView,
           ),
           IconButton(
             icon: const Icon(Icons.view_list_outlined),
@@ -75,8 +83,11 @@ class CalendarScreen extends ConsumerWidget {
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: KeyedSubtree(
-          key: ValueKey('${state.viewMode}-${state.selectedDate}'),
-          child: _buildBody(state),
+          key: ValueKey(
+              '${state.isListView}-${state.viewMode}-${state.selectedDate}'),
+          child: state.isListView
+              ? DayListView(date: state.selectedDate)
+              : _buildBody(state),
         ),
       ),
       floatingActionButton: FloatingActionButton(
