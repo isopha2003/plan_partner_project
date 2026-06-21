@@ -27,4 +27,13 @@ class ChecklistItemsDao extends DatabaseAccessor<AppDatabase>
 
   Future<bool> updateItem(ChecklistItem item) =>
       update(checklistItems).replace(item);
+
+  Stream<List<ChecklistItem>> watchItemsByBlock(int blockId) =>
+      (select(checklistItems)
+            ..where((i) => i.blockId.equals(blockId))
+            ..orderBy([(i) => OrderingTerm.asc(i.sortOrder)]))
+          .watch();
+
+  Future<int> deleteItem(int id) =>
+      (delete(checklistItems)..where((i) => i.id.equals(id))).go();
 }

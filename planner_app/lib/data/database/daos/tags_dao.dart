@@ -12,6 +12,15 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
 
   Future<List<Tag>> getAllTags() => select(tags).get();
 
+  Stream<List<Tag>> watchAllTags() =>
+      (select(tags)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+
+  Future<void> detachTagFromBlock(int blockId, int tagId) =>
+      (delete(blockTags)
+            ..where((bt) =>
+                bt.blockId.equals(blockId) & bt.tagId.equals(tagId)))
+          .go();
+
   Future<int> insertTag(TagsCompanion tag) => into(tags).insert(tag);
 
   Future<void> attachTagToBlock(int blockId, int tagId) =>
