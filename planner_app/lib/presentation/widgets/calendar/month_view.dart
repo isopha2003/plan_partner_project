@@ -81,7 +81,9 @@ class _MonthGrid extends ConsumerWidget {
           return const SizedBox.shrink();
         }
         final cellDate = DateTime(year, month, dayNumber);
-        return _DayCell(date: cellDate);
+        // ValueKey(cellDate) ensures GridView.builder assigns a fresh element
+        // to each date, preventing cell recycling from serving stale data.
+        return _DayCell(key: ValueKey(cellDate), date: cellDate);
       },
     );
   }
@@ -90,7 +92,8 @@ class _MonthGrid extends ConsumerWidget {
 class _DayCell extends ConsumerWidget {
   final DateTime date;
 
-  const _DayCell({required this.date});
+  // super.key required so callers can pass ValueKey(date).
+  const _DayCell({super.key, required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -158,7 +161,11 @@ class _BlockDots extends StatelessWidget {
       spacing: 2,
       children: dots
           .map(
+            // Key uses block.id so each recurring instance dot is uniquely
+            // identified — prevents Flutter from conflating instances that
+            // share the same blockTemplateId.
             (p) => Container(
+              key: ValueKey(p.$1.id),
               width: 6,
               height: 6,
               decoration: BoxDecoration(

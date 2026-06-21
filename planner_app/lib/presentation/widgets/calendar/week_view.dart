@@ -19,7 +19,13 @@ class WeekView extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (int i = 0; i < 7; i++)
-            _DayColumn(date: monday.add(Duration(days: i))),
+            // ValueKey(date) ensures Flutter creates a fresh element for each
+            // date — prevents positional element reuse across weeks or when
+            // the selected date changes within the same week.
+            _DayColumn(
+              key: ValueKey(monday.add(Duration(days: i))),
+              date: monday.add(Duration(days: i)),
+            ),
         ],
       ),
     );
@@ -34,7 +40,8 @@ class _DayColumn extends ConsumerWidget {
   static const _weekdays = ['월', '화', '수', '목', '금', '토', '일'];
   static const double _colWidth = 120.0;
 
-  const _DayColumn({required this.date});
+  // super.key required so callers can pass ValueKey(date).
+  const _DayColumn({super.key, required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,7 +130,10 @@ class _BlockList extends StatelessWidget {
     return Column(
       children: pairs.map((p) {
         final color = Color(p.$2.color);
+        // Key uses block.id (unique per instance), not blockTemplateId
+        // (shared across all recurring instances of the same template).
         return Container(
+          key: ValueKey(p.$1.id),
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: BoxDecoration(
