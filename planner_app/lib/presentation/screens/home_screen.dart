@@ -3,10 +3,9 @@ import 'package:planner_app/presentation/screens/calendar_screen.dart';
 import 'package:planner_app/presentation/screens/deadline_tasks_screen.dart';
 import 'package:planner_app/presentation/screens/stats_screen.dart';
 import 'package:planner_app/presentation/screens/timer_screen.dart';
+import 'package:planner_app/presentation/screens/today_screen.dart';
 
-/// Root scaffold that hosts the three main tabs via a bottom NavigationBar.
-/// IndexedStack keeps each tab's widget tree (and scroll position) alive
-/// while switching between tabs.
+/// Root scaffold — 5 tabs; "오늘" is the default landing tab.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _tabIndex,
         children: const [
+          TodayScreen(),
           CalendarScreen(),
           TimerScreen(),
           StatsScreen(),
@@ -33,6 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() => _tabIndex = i),
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.wb_sunny_outlined),
+            selectedIcon: Icon(Icons.wb_sunny),
+            label: '오늘',
+          ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),

@@ -26,6 +26,15 @@ class DeadlineTasksDao extends DatabaseAccessor<AppDatabase>
             ]))
           .watch();
 
+  /// Streams incomplete tasks whose deadline is on or before [by] (end-of-day).
+  Stream<List<DeadlineTask>> watchDueTasks(DateTime by) =>
+      (select(deadlineTasks)
+            ..where((t) =>
+                t.isCompleted.equals(false) &
+                t.deadlineDate.isSmallerOrEqualValue(by))
+            ..orderBy([(t) => OrderingTerm.asc(t.deadlineDate)]))
+          .watch();
+
   Future<void> updateTask(DeadlineTask task) =>
       update(deadlineTasks).replace(task);
 
