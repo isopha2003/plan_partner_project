@@ -33,8 +33,10 @@ class ChildrenScreen extends ConsumerWidget {
             onAdd: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    BlockEditScreen(initialDate: parent.startTime),
+                builder: (_) => BlockEditScreen(
+                  initialDate: parent.startTime,
+                  parentId: parent.id,
+                ),
               ),
             ),
           ),
