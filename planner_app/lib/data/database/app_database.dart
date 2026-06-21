@@ -9,7 +9,6 @@ import 'daos/block_templates_dao.dart';
 import 'daos/blocks_dao.dart';
 import 'daos/checklist_items_dao.dart';
 import 'daos/deadline_tasks_dao.dart';
-import 'daos/mood_logs_dao.dart';
 import 'daos/recurrence_rules_dao.dart';
 import 'daos/tags_dao.dart';
 import 'daos/templates_dao.dart';
@@ -19,7 +18,6 @@ import 'tables/block_templates_table.dart';
 import 'tables/blocks_table.dart';
 import 'tables/checklist_items_table.dart';
 import 'tables/deadline_tasks_table.dart';
-import 'tables/mood_logs_table.dart';
 import 'tables/recurrence_rules_table.dart';
 import 'tables/tags_table.dart';
 import 'tables/template_blocks_table.dart';
@@ -41,7 +39,6 @@ part 'app_database.g.dart';
     Templates,
     TemplateBlocks,
     DeadlineTasks,
-    MoodLogs,
   ],
   daos: [
     BlockTemplatesDao,
@@ -52,7 +49,6 @@ part 'app_database.g.dart';
     RecurrenceRulesDao,
     TemplatesDao,
     DeadlineTasksDao,
-    MoodLogsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -61,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
