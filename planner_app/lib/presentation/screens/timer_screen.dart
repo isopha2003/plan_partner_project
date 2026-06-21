@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/domain/timer/timer_status.dart';
+import 'package:planner_app/presentation/providers/pomodoro_provider.dart';
 import 'package:planner_app/presentation/providers/timer_provider.dart';
+import 'package:planner_app/presentation/screens/pomodoro_settings_screen.dart';
 
 /// Timer screen: shows elapsed time and lets the user start/stop/reset.
 /// Wires directly to [timerProvider] from Phase 2.
@@ -12,11 +14,31 @@ class TimerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snap = ref.watch(timerProvider);
     final notifier = ref.read(timerProvider.notifier);
+    // pomo is used for the AppBar icon color; keep below snap/notifier
+
+    final pomo = ref.watch(pomodoroProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('타이머'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.timer_outlined,
+              color: pomo.enabled
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+            tooltip: '뽀모도로 설정',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PomodoroSettingsScreen(),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: Column(
