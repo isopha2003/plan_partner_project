@@ -18,6 +18,8 @@ class StatsScreen extends ConsumerWidget {
       body: ListView(
         children: const [
           _GrassSection(),
+          Divider(height: 32),
+          _TodayStatsSection(),
           SizedBox(height: 24),
         ],
       ),
@@ -223,6 +225,181 @@ class _GrassCell extends StatelessWidget {
               child: const Text('닫기')),
         ],
       ),
+    );
+  }
+}
+
+// ── Today's stats section ─────────────────────────────────────────────────────
+
+class _TodayStatsSection extends ConsumerWidget {
+  const _TodayStatsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final blocksAsync = ref.watch(blocksForDayProvider(today));
+    final sessionsAsync = ref.watch(sessionsForDayProvider(today));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '오늘의 통계',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          blocksAsync.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (e, _) => Text('오류: $e'),
+            data: (pairs) {
+              final total = pairs.length;
+              final completed = pairs.where((p) => p.$1.isCompleted).length;
+              final ratio = total == 0 ? 0.0 : completed / total;
+
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          label: '계획 블록',
+                          value: '$total개',
+                          icon: Icons.calendar_today_outlined,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StatCard(
+                          label: '완료 블록',
+                          value: '$completed개',
+                          icon: Icons.check_circle_outline,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _CompletionBar(ratio: ratio, label: '오늘 완료율'),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          sessionsAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (e, _) => const SizedBox.shrink(),
+            data: (sessions) {
+              final focus = sessions
+                  .where((s) => s.endedAt != null)
+                  .fold<Duration>(
+                    Duration.zero,
+                    (sum, s) => sum + s.endedAt!.difference(s.startedAt),
+                  );
+              return _StatCard(
+                label: '오늘 집중 시간',
+                value: _fmtDuration(focus),
+                icon: Icons.access_time_outlined,
+                color: Colors.indigo,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _fmtDuration(Duration d) {
+    if (d.inHours > 0) return '${d.inHours}시간 ${d.inMinutes % 60}분';
+    if (d.inMinutes > 0) return '${d.inMinutes}분';
+    return '${d.inSeconds}초';
+  }
+}
+
+// ── Shared stat widgets ───────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletionBar extends StatelessWidget {
+  final double ratio;
+  final String label;
+
+  const _CompletionBar({required this.ratio, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (ratio * 100).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 13)),
+            Text('$pct%',
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: ratio.clamp(0.0, 1.0),
+            minHeight: 10,
+            backgroundColor: Colors.grey.shade200,
+            valueColor:
+                AlwaysStoppedAnimation<Color>(Colors.green.shade400),
+          ),
+        ),
+      ],
     );
   }
 }
