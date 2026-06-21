@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull, isIn;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:planner_app/data/database/app_database.dart';
 
