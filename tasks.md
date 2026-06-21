@@ -71,6 +71,7 @@
 - [x] 마감 작업(데드라인 태스크) 생성/관리 화면 — verify: 생성, 캘린더 마커 표시, 완료/삭제 확인
 - [x] 마감 작업 → 타임블록 전환 기능 — verify: 전환 후 데이터 일관성 확인
 - [x] "오늘" 화면 신설 (첫 번째 탭) — 오늘의 블록 체크리스트 + 오늘/마감지난 데드라인 작업 표시, setBlockCompleted 즉시 반응
+- [x] BlockEditScreen 완료 토글 추가 — 편집 모드에서 SwitchListTile로 즉시 setBlockCompleted 호출
 
 ---
 

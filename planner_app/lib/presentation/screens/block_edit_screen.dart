@@ -39,6 +39,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
   late DateTime _end;
   RecurrenceRulesCompanion? _pendingRecurrence;
   late TextEditingController _memoController;
+  late bool _isCompleted;
 
   bool get _isEditing => widget.block != null;
 
@@ -46,6 +47,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
   void initState() {
     super.initState();
     _selectedTemplate = widget.template;
+    _isCompleted = widget.block?.isCompleted ?? false;
 
     final base = widget.initialDate ?? DateTime.now();
     final defaultStart = DateTime(base.year, base.month, base.day, 9, 0);
@@ -168,9 +170,40 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
                   EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
           ),
+
+          // Completion toggle — edit mode only
+          if (_isEditing) ...[
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _isCompleted ? '완료됨' : '미완료',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _isCompleted ? Colors.green.shade700 : null,
+                ),
+              ),
+              secondary: Icon(
+                _isCompleted
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                color: _isCompleted ? Colors.green.shade600 : Colors.grey,
+              ),
+              value: _isCompleted,
+              onChanged: _toggleCompletion,
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _toggleCompletion(bool v) async {
+    await ref
+        .read(databaseProvider)
+        .blocksDao
+        .setBlockCompleted(widget.block!.id, v);
+    setState(() => _isCompleted = v);
   }
 
   Future<void> _deleteBlock() async {
