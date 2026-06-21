@@ -10,7 +10,7 @@
 
 ## Git / GitHub 규칙
 
-- 각 작업(Phase 단위) 완료 후 변경사항을 자동으로 커밋하고 push할 것
+- 각 원자 단위 작업(tasks.md의 체크박스 하나) 완료 후 변경사항을 자동으로 커밋하고 push할 것
 - 커밋 메시지는 **Conventional Commits** 형식 사용: `접두사: 설명`
   - `feat:` 새 기능 추가
   - `fix:` 버그 수정
