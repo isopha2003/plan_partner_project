@@ -69,7 +69,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
       appBar: AppBar(
         title: Text(_isEditing ? '블록 편집' : '블록 생성'),
         actions: [
-          if (_isEditing)
+          if (_isEditing) ...[
             IconButton(
               icon: const Icon(Icons.link),
               tooltip: '습관 스태킹',
@@ -83,6 +83,12 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
                 ),
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: '이 블록만 삭제',
+              onPressed: _deleteBlock,
+            ),
+          ],
           if (_selectedTemplate != null)
             IconButton(
               icon: const Icon(Icons.edit_note),
@@ -165,6 +171,35 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteBlock() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('블록 삭제'),
+        content: const Text(
+          '이 블록 인스턴스만 삭제됩니다.\n'
+          '템플릿이나 같은 반복 규칙으로 생성된 다른 날짜의 블록은 영향 받지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child:
+                const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref
+        .read(databaseProvider)
+        .blocksDao
+        .deleteBlock(widget.block!.id);
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _openRecurrenceEdit() async {
