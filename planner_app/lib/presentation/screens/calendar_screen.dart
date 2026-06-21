@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/presentation/providers/calendar_provider.dart';
 import 'package:planner_app/presentation/screens/block_edit_screen.dart';
+import 'package:planner_app/presentation/screens/schedule_templates_screen.dart';
 import 'package:planner_app/presentation/widgets/calendar/day_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/week_view.dart';
 import 'package:planner_app/presentation/widgets/calendar/month_view.dart';
@@ -32,6 +33,17 @@ class CalendarScreen extends ConsumerWidget {
             icon: const Icon(Icons.today),
             onPressed: notifier.goToToday,
             tooltip: '오늘',
+          ),
+          IconButton(
+            icon: const Icon(Icons.view_list_outlined),
+            tooltip: '일정 템플릿',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ScheduleTemplatesScreen(date: state.selectedDate),
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),

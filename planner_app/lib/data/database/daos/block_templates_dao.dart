@@ -19,6 +19,10 @@ class BlockTemplatesDao extends DatabaseAccessor<AppDatabase>
       (select(blockTemplates)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
 
+  Future<BlockTemplate?> getTemplateByTitle(String title) =>
+      (select(blockTemplates)..where((t) => t.title.equals(title)))
+          .getSingleOrNull();
+
   Future<int> insertTemplate(BlockTemplatesCompanion template) =>
       into(blockTemplates).insert(template);
 

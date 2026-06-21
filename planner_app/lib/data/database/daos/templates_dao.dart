@@ -25,4 +25,14 @@ class TemplatesDao extends DatabaseAccessor<AppDatabase>
             ..where((b) => b.templateId.equals(templateId))
             ..orderBy([(b) => OrderingTerm.asc(b.sortOrder)]))
           .get();
+
+  Stream<List<Template>> watchAllTemplates() =>
+      (select(templates)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+
+  Future<void> deleteTemplate(int id) async {
+    await (delete(templateBlocks)
+          ..where((b) => b.templateId.equals(id)))
+        .go();
+    await (delete(templates)..where((t) => t.id.equals(id))).go();
+  }
 }
