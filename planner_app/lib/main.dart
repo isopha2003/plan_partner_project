@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/data/database/app_database.dart';
-import 'package:planner_app/presentation/screens/calendar_screen.dart';
+import 'package:planner_app/presentation/screens/home_screen.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -26,7 +26,7 @@ class PlannerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: const CalendarScreen(),
+      home: const HomeScreen(),
     );
   }
 }
