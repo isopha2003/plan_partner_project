@@ -4,6 +4,7 @@ import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 import 'package:planner_app/presentation/widgets/calendar/block_tile.dart';
+import 'package:planner_app/presentation/widgets/calendar/overlap_banner.dart';
 
 /// 24-hour day timeline showing scheduled blocks with drag-and-drop support.
 class DayView extends ConsumerWidget {
@@ -32,6 +33,17 @@ class _Timeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final overlaps = findOverlaps(blocks);
+    return Column(
+      children: [
+        if (overlaps.isNotEmpty)
+          OverlapWarningBanner(overlappingPairs: overlaps),
+        Expanded(child: _timelineScroll()),
+      ],
+    );
+  }
+
+  Widget _timelineScroll() {
     return SingleChildScrollView(
       child: SizedBox(
         height: DayView.hourHeight * 24 + 16,
