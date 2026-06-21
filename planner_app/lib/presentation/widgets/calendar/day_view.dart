@@ -29,30 +29,59 @@ class DayView extends ConsumerWidget {
 
 // ── Main layout ───────────────────────────────────────────────────────────────
 
-class _DayViewContent extends ConsumerWidget {
+/// Collapsed height fraction (drag handle ~24px + chip row ~40px + padding ~20px
+/// ≈ 84px; 84/800 ≈ 0.105 — use 0.13 for breathing room on small screens).
+const double _kCollapsedSize = 0.13;
+const double _kExpandedSize = 0.45;
+
+class _DayViewContent extends ConsumerStatefulWidget {
   final DateTime date;
   final List<(Block, BlockTemplate)> pairs;
 
   const _DayViewContent({required this.date, required this.pairs});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final overlaps = findOverlaps(pairs);
+  ConsumerState<_DayViewContent> createState() => _DayViewContentState();
+}
+
+class _DayViewContentState extends ConsumerState<_DayViewContent> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isResizing = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onResizeStateChanged(bool resizing) {
+    setState(() => _isResizing = resizing);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final overlaps = findOverlaps(widget.pairs);
     final templatesAsync = ref.watch(blockTemplatesProvider);
+    final paletteH = MediaQuery.of(context).size.height * _kCollapsedSize;
 
     return Stack(
       children: [
-        // Timeline (full height — palette sheet overlays at bottom)
+        // ── Timeline ─────────────────────────────────────────────────────
         Column(
           children: [
             if (overlaps.isNotEmpty)
               OverlapWarningBanner(overlappingPairs: overlaps),
             Expanded(
               child: SingleChildScrollView(
-                // Bottom padding = collapsed palette height so 24:00 is reachable.
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).size.height * _kCollapsedSize,
-                ),
+                controller: _scrollController,
+                // Lock scrolling while resizing so the scroll view
+                // cannot steal the vertical drag gesture.
+                physics: _isResizing
+                    ? const NeverScrollableScrollPhysics()
+                    : null,
+                // Reserve space at the bottom equal to the collapsed
+                // palette height so 24:00 is fully reachable by scroll.
+                padding: EdgeInsets.only(bottom: paletteH),
                 child: SizedBox(
                   height: DayView.hourHeight * 24 + 16,
                   child: Row(
@@ -61,7 +90,12 @@ class _DayViewContent extends ConsumerWidget {
                       _TimeLabels(),
                       const VerticalDivider(width: 1, thickness: 1),
                       Expanded(
-                          child: _TimelineGrid(date: date, pairs: pairs)),
+                        child: _TimelineGrid(
+                          date: widget.date,
+                          pairs: widget.pairs,
+                          onResizeStateChanged: _onResizeStateChanged,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -69,8 +103,17 @@ class _DayViewContent extends ConsumerWidget {
             ),
           ],
         ),
-        // Expandable template palette sheet
-        _TemplatePaletteSheet(templatesAsync: templatesAsync),
+
+        // ── Palette overlay ──────────────────────────────────────────────
+        // Hidden while resizing so the block is not obscured by the sheet.
+        IgnorePointer(
+          ignoring: _isResizing,
+          child: AnimatedOpacity(
+            opacity: _isResizing ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 180),
+            child: _TemplatePaletteSheet(templatesAsync: templatesAsync),
+          ),
+        ),
       ],
     );
   }
@@ -104,13 +147,18 @@ class _TimeLabels extends StatelessWidget {
   }
 }
 
-// ── Timeline grid (accepts both Block moves and BlockTemplate drops) ──────────
+// ── Timeline grid ─────────────────────────────────────────────────────────────
 
 class _TimelineGrid extends ConsumerStatefulWidget {
   final DateTime date;
   final List<(Block, BlockTemplate)> pairs;
+  final ValueChanged<bool> onResizeStateChanged;
 
-  const _TimelineGrid({required this.date, required this.pairs});
+  const _TimelineGrid({
+    required this.date,
+    required this.pairs,
+    required this.onResizeStateChanged,
+  });
 
   @override
   ConsumerState<_TimelineGrid> createState() => _TimelineGridState();
@@ -125,7 +173,8 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
   bool _resizingTop = false;
   DateTime _resizeOrigStart = DateTime(0);
   DateTime _resizeOrigEnd = DateTime(0);
-  double _resizeTotalDelta = 0;
+  double _resizeDragStartY = 0; // global Y at drag start
+  double _resizeTotalDelta = 0; // = currentGlobalY − _resizeDragStartY
 
   @override
   Widget build(BuildContext context) {
@@ -146,9 +195,7 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
         setState(() => _isDragOver = false);
         final data = details.data;
         if (data is Block) _handleBlockMove(data, details.offset);
-        if (data is BlockTemplate) {
-          _handleTemplateDrop(data, details.offset);
-        }
+        if (data is BlockTemplate) _handleTemplateDrop(data, details.offset);
       },
       builder: (context, candidateData, rejectedData) {
         return Stack(
@@ -242,8 +289,7 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
                 child: tile,
               ),
             ),
-            childWhenDragging:
-                Opacity(opacity: 0.3, child: tile),
+            childWhenDragging: Opacity(opacity: 0.3, child: tile),
             child: tile,
           ),
           // Top resize handle
@@ -254,8 +300,12 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
             height: 12,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onVerticalDragStart: (d) => _startResize(block, true, d.globalPosition.dy),
-              onVerticalDragUpdate: (d) => _updateResize(d.delta.dy),
+              onVerticalDragStart: (d) =>
+                  _startResize(block, true, d.globalPosition.dy),
+              // Use absolute globalY so scroll-view gesture competition
+              // cannot corrupt the accumulated delta.
+              onVerticalDragUpdate: (d) =>
+                  _updateResize(d.globalPosition.dy),
               onVerticalDragEnd: (_) => _commitResize(block),
               child: _ResizeHandle(top: true),
             ),
@@ -268,8 +318,10 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
             height: 12,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onVerticalDragStart: (d) => _startResize(block, false, d.globalPosition.dy),
-              onVerticalDragUpdate: (d) => _updateResize(d.delta.dy),
+              onVerticalDragStart: (d) =>
+                  _startResize(block, false, d.globalPosition.dy),
+              onVerticalDragUpdate: (d) =>
+                  _updateResize(d.globalPosition.dy),
               onVerticalDragEnd: (_) => _commitResize(block),
               child: _ResizeHandle(top: false),
             ),
@@ -281,21 +333,25 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
 
   // ── Resize helpers ───────────────────────────────────────────────────────
 
-  void _startResize(Block block, bool top, double startY) {
+  void _startResize(Block block, bool top, double globalStartY) {
+    widget.onResizeStateChanged(true);
     setState(() {
       _resizingBlock = block;
       _resizingTop = top;
       _resizeOrigStart = block.startTime!;
       _resizeOrigEnd = block.endTime!;
+      _resizeDragStartY = globalStartY;
       _resizeTotalDelta = 0;
     });
   }
 
-  void _updateResize(double dy) {
-    setState(() => _resizeTotalDelta += dy);
+  // Recompute total delta as absolute distance from drag-start (not cumulative).
+  void _updateResize(double globalCurrentY) {
+    setState(() => _resizeTotalDelta = globalCurrentY - _resizeDragStartY);
   }
 
   void _commitResize(Block block) {
+    widget.onResizeStateChanged(false);
     if (_resizingBlock == null) return;
 
     final deltaMin =
@@ -329,6 +385,7 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
     setState(() {
       _resizingBlock = null;
       _resizeTotalDelta = 0;
+      _resizeDragStartY = 0;
     });
   }
 
@@ -373,24 +430,18 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
       snapped ~/ 60,
       snapped % 60,
     );
-    final newEnd = newStart.add(const Duration(hours: 1));
 
     ref.read(databaseProvider).blocksDao.insertBlock(
           BlocksCompanion.insert(
             blockTemplateId: template.id,
             startTime: Value(newStart),
-            endTime: Value(newEnd),
+            endTime: Value(newStart.add(const Duration(hours: 1))),
           ),
         );
   }
 }
 
 // ── Template palette sheet (expandable) ──────────────────────────────────────
-
-/// Collapsed height fraction: drag handle (24px) + chip row (40px) + padding (20px)
-/// ≈ 84px. On an 800px screen that is ~0.105; use 0.13 for breathing room.
-const double _kCollapsedSize = 0.13;
-const double _kExpandedSize = 0.45;
 
 class _TemplatePaletteSheet extends StatelessWidget {
   final AsyncValue<List<BlockTemplate>> templatesAsync;
@@ -424,16 +475,13 @@ class _TemplatePaletteSheet extends StatelessWidget {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              // Drag handle + header row
               SliverToBoxAdapter(
                 child: _PaletteHeader(templatesAsync: templatesAsync),
               ),
-              // Template chips grid (Wrap → natural row wrap)
               SliverToBoxAdapter(
                 child: templatesAsync.when(
                   data: (templates) => Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -469,7 +517,6 @@ class _PaletteHeader extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Drag handle indicator
         Container(
           width: 40,
           height: 4,
@@ -479,7 +526,6 @@ class _PaletteHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        // Title + add button
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 4, 8),
           child: Row(
@@ -526,7 +572,6 @@ class _TemplateDraggableChip extends StatelessWidget {
         child: chip,
       ),
       childWhenDragging: Opacity(opacity: 0.4, child: chip),
-      // Tap opens the template editor; long-press starts the drag.
       child: GestureDetector(
         onTap: () => Navigator.push(
           context,
@@ -548,8 +593,7 @@ class _TemplateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Color(template.color);
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
