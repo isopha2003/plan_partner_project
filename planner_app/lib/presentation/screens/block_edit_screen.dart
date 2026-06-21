@@ -2,10 +2,12 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/data/database/app_database.dart';
+import 'package:planner_app/domain/services/recurrence_generator.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 import 'package:planner_app/presentation/screens/block_template_edit_screen.dart';
 import 'package:planner_app/presentation/screens/habit_stack_screen.dart';
+import 'package:planner_app/presentation/screens/recurrence_edit_screen.dart';
 
 /// Schedule or reschedule a block instance.
 ///
@@ -35,6 +37,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
   BlockTemplate? _selectedTemplate;
   late DateTime _start;
   late DateTime _end;
+  RecurrenceRulesCompanion? _pendingRecurrence;
 
   bool get _isEditing => widget.block != null;
 
@@ -120,9 +123,45 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
             dateTime: _end,
             onChanged: (dt) => setState(() => _end = dt),
           ),
+
+          // Recurrence — only for new blocks
+          if (!_isEditing) ...[
+            const SizedBox(height: 20),
+            _SectionLabel('반복'),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.repeat),
+              title: Text(
+                _pendingRecurrence == null ? '반복 없음' : _recurrenceLabel(),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openRecurrenceEdit,
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _openRecurrenceEdit() async {
+    final result = await Navigator.push<RecurrenceRulesCompanion>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecurrenceEditScreen(startDate: _start),
+      ),
+    );
+    setState(() => _pendingRecurrence = result);
+  }
+
+  String _recurrenceLabel() {
+    final r = _pendingRecurrence!;
+    final interval = r.interval.present ? r.interval.value : 1;
+    return switch (r.type.value) {
+      'daily' => '매일 ($interval일 간격)',
+      'weekly' => '매주 ($interval주 간격)',
+      'monthly' => '매월 ($interval개월 간격)',
+      _ => '반복 설정됨',
+    };
   }
 
   Future<void> _save() async {
@@ -143,14 +182,39 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
     if (_isEditing) {
       await db.blocksDao.updateBlockTimes(widget.block!.id, _start, _end);
     } else {
-      await db.blocksDao.insertBlock(
+      // Insert recurrence rule first if configured
+      int? ruleId;
+      if (_pendingRecurrence != null) {
+        ruleId =
+            await db.recurrenceRulesDao.insertRule(_pendingRecurrence!);
+      }
+
+      final blockId = await db.blocksDao.insertBlock(
         BlocksCompanion.insert(
           blockTemplateId: _selectedTemplate!.id,
           startTime: Value(_start),
           endTime: Value(_end),
           parentId: Value(widget.parentId),
+          recurrenceRuleId: Value(ruleId),
         ),
       );
+
+      // Generate recurring instances for the next 90 days
+      if (ruleId != null) {
+        final rule = await db.recurrenceRulesDao.getRuleById(ruleId);
+        final source = await db.blocksDao.getBlockById(blockId);
+        if (rule != null && source != null) {
+          final instances = RecurrenceGenerator.generate(
+            rule: rule,
+            sourceBlock: source,
+            from: _start.add(const Duration(days: 1)),
+            daysAhead: 90,
+          );
+          if (instances.isNotEmpty) {
+            await db.blocksDao.insertBlocks(instances);
+          }
+        }
+      }
     }
 
     if (mounted) Navigator.pop(context);

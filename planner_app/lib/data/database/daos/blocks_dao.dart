@@ -15,6 +15,10 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
   /// Reactive stream of all blocks (for grass / stats).
   Stream<List<Block>> watchAllBlocks() => select(blocks).watch();
 
+  /// Batch-inserts generated recurring instances.
+  Future<void> insertBlocks(List<BlocksCompanion> companions) =>
+      batch((b) => b.insertAll(blocks, companions));
+
   /// Marks a block as completed or uncompleted, recording the exact time.
   Future<int> setBlockCompleted(int id, bool isCompleted) =>
       (update(blocks)..where((b) => b.id.equals(id))).write(
