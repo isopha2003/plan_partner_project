@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:planner_app/presentation/screens/calendar_screen.dart';
+import 'package:planner_app/presentation/screens/deadline_tasks_screen.dart';
 import 'package:planner_app/presentation/screens/stats_screen.dart';
 import 'package:planner_app/presentation/screens/timer_screen.dart';
 
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
           CalendarScreen(),
           TimerScreen(),
           StatsScreen(),
+          DeadlineTasksScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -45,6 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart),
             label: '통계',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.task_outlined),
+            selectedIcon: Icon(Icons.task),
+            label: '할 일',
           ),
         ],
       ),

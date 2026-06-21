@@ -18,6 +18,17 @@ class DeadlineTasksDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(t) => OrderingTerm.asc(t.deadlineDate)]))
           .get();
 
+  Stream<List<DeadlineTask>> watchAllTasksSortedByDeadline() =>
+      (select(deadlineTasks)
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.isCompleted),
+              (t) => OrderingTerm.asc(t.deadlineDate),
+            ]))
+          .watch();
+
+  Future<void> updateTask(DeadlineTask task) =>
+      update(deadlineTasks).replace(task);
+
   Future<void> completeTask(int id) =>
       (update(deadlineTasks)..where((t) => t.id.equals(id)))
           .write(const DeadlineTasksCompanion(isCompleted: Value(true)));
