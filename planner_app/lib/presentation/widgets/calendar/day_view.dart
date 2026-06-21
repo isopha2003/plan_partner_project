@@ -1,15 +1,17 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/data/database/app_database.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
+import 'package:planner_app/presentation/screens/block_template_edit_screen.dart';
 import 'package:planner_app/presentation/widgets/calendar/block_tile.dart';
 import 'package:planner_app/presentation/widgets/calendar/overlap_banner.dart';
 
-/// 24-hour day timeline showing scheduled blocks with drag-and-drop support.
+/// 24-hour day timeline with drag-and-drop support and template palette.
 class DayView extends ConsumerWidget {
   final DateTime date;
-  static const double hourHeight = 60.0; // 1 px per minute
+  static const double hourHeight = 60.0;
   static const double labelWidth = 52.0;
 
   const DayView({super.key, required this.date});
@@ -18,47 +20,56 @@ class DayView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final blocksAsync = ref.watch(blocksForDayProvider(date));
     return blocksAsync.when(
-      data: (pairs) => _Timeline(date: date, pairs: pairs),
+      data: (pairs) => _DayViewContent(date: date, pairs: pairs),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('불러오기 실패: $e')),
     );
   }
 }
 
-class _Timeline extends StatelessWidget {
+// ── Main layout ───────────────────────────────────────────────────────────────
+
+class _DayViewContent extends ConsumerWidget {
   final DateTime date;
   final List<(Block, BlockTemplate)> pairs;
 
-  const _Timeline({required this.date, required this.pairs});
+  const _DayViewContent({required this.date, required this.pairs});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final overlaps = findOverlaps(pairs);
+    final templatesAsync = ref.watch(blockTemplatesProvider);
+
     return Column(
       children: [
         if (overlaps.isNotEmpty)
           OverlapWarningBanner(overlappingPairs: overlaps),
-        Expanded(child: _timelineScroll()),
+        Expanded(
+          child: SingleChildScrollView(
+            child: SizedBox(
+              height: DayView.hourHeight * 24 + 16,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _TimeLabels(),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(
+                      child: _TimelineGrid(date: date, pairs: pairs)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        _TemplatePaletteBar(
+          templatesAsync: templatesAsync,
+          date: date,
+        ),
       ],
     );
   }
-
-  Widget _timelineScroll() {
-    return SingleChildScrollView(
-      child: SizedBox(
-        height: DayView.hourHeight * 24 + 16,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TimeLabels(),
-            const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: _TimelineGrid(date: date, pairs: pairs)),
-          ],
-        ),
-      ),
-    );
-  }
 }
+
+// ── Hour labels ───────────────────────────────────────────────────────────────
 
 class _TimeLabels extends StatelessWidget {
   @override
@@ -86,7 +97,8 @@ class _TimeLabels extends StatelessWidget {
   }
 }
 
-/// Timeline grid with drag-and-drop support.
+// ── Timeline grid (accepts both Block moves and BlockTemplate drops) ──────────
+
 class _TimelineGrid extends ConsumerStatefulWidget {
   final DateTime date;
   final List<(Block, BlockTemplate)> pairs;
@@ -101,22 +113,35 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
   final _gridKey = GlobalKey();
   bool _isDragOver = false;
 
+  // Resize state
+  Block? _resizingBlock;
+  bool _resizingTop = false;
+  DateTime _resizeOrigStart = DateTime(0);
+  DateTime _resizeOrigEnd = DateTime(0);
+  double _resizeTotalDelta = 0;
+
   @override
   Widget build(BuildContext context) {
     final scheduled = widget.pairs
         .where((p) => p.$1.startTime != null && p.$1.endTime != null)
         .toList();
 
-    return DragTarget<Block>(
+    return DragTarget<Object>(
       key: _gridKey,
-      onWillAcceptWithDetails: (_) {
-        setState(() => _isDragOver = true);
-        return true;
+      onWillAcceptWithDetails: (details) {
+        final ok =
+            details.data is Block || details.data is BlockTemplate;
+        if (ok) setState(() => _isDragOver = true);
+        return ok;
       },
       onLeave: (_) => setState(() => _isDragOver = false),
       onAcceptWithDetails: (details) {
         setState(() => _isDragOver = false);
-        _handleDrop(details);
+        final data = details.data;
+        if (data is Block) _handleBlockMove(data, details.offset);
+        if (data is BlockTemplate) {
+          _handleTemplateDrop(data, details.offset);
+        }
       },
       builder: (context, candidateData, rejectedData) {
         return Stack(
@@ -132,7 +157,6 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
                   ),
                 ),
               ),
-            // Hour grid lines
             for (int h = 0; h <= 24; h++)
               Positioned(
                 top: h * DayView.hourHeight,
@@ -140,7 +164,6 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
                 right: 0,
                 child: Container(height: 1, color: Colors.grey[200]),
               ),
-            // Half-hour tick lines
             for (int h = 0; h < 24; h++)
               Positioned(
                 top: h * DayView.hourHeight + DayView.hourHeight / 2,
@@ -148,68 +171,359 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
                 right: 0,
                 child: Container(height: 1, color: Colors.grey[100]),
               ),
-            for (final pair in scheduled) _draggableBlock(pair),
+            for (final pair in scheduled) _positionedBlock(pair),
           ],
         );
       },
     );
   }
 
-  Widget _draggableBlock((Block, BlockTemplate) pair) {
+  // ── Block rendering ──────────────────────────────────────────────────────
+
+  Widget _positionedBlock((Block, BlockTemplate) pair) {
     final (block, template) = pair;
-    final topMinutes = block.startTime!.hour * 60 + block.startTime!.minute;
-    final top = topMinutes * DayView.hourHeight / 60.0;
-    final durationMin = block.endTime!.difference(block.startTime!).inMinutes;
+    final isResizing = _resizingBlock?.id == block.id;
+
+    DateTime displayStart = block.startTime!;
+    DateTime displayEnd = block.endTime!;
+
+    if (isResizing) {
+      final deltaMin =
+          (_resizeTotalDelta / DayView.hourHeight * 60).round();
+      final snapped = (deltaMin / 15).round() * 15;
+      if (_resizingTop) {
+        final candidate =
+            _resizeOrigStart.add(Duration(minutes: snapped));
+        if (candidate.isBefore(
+            displayEnd.subtract(const Duration(minutes: 15)))) {
+          displayStart = candidate;
+        }
+      } else {
+        final candidate =
+            _resizeOrigEnd.add(Duration(minutes: snapped));
+        if (candidate
+            .isAfter(displayStart.add(const Duration(minutes: 15)))) {
+          displayEnd = candidate;
+        }
+      }
+    }
+
+    final topMin = displayStart.hour * 60 + displayStart.minute;
+    final top = topMin * DayView.hourHeight / 60.0;
+    final durationMin = displayEnd.difference(displayStart).inMinutes;
     final height =
         (durationMin * DayView.hourHeight / 60.0).clamp(22.0, double.infinity);
 
     final tile = BlockTile(block: block, template: template);
+
     return Positioned(
       top: top,
       left: 4,
       right: 4,
       height: height,
-      child: LongPressDraggable<Block>(
-        data: block,
-        delay: const Duration(milliseconds: 400),
-        feedback: SizedBox(
-          width: 160,
-          height: height.clamp(48.0, 120.0),
-          child: Material(
-            elevation: 6,
-            borderRadius: BorderRadius.circular(6),
+      child: Stack(
+        children: [
+          LongPressDraggable<Block>(
+            data: block,
+            delay: const Duration(milliseconds: 400),
+            feedback: SizedBox(
+              width: 160,
+              height: height.clamp(48.0, 120.0),
+              child: Material(
+                elevation: 6,
+                borderRadius: BorderRadius.circular(6),
+                child: tile,
+              ),
+            ),
+            childWhenDragging:
+                Opacity(opacity: 0.3, child: tile),
             child: tile,
           ),
-        ),
-        childWhenDragging: Opacity(opacity: 0.3, child: tile),
-        child: tile,
+          // Top resize handle
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 12,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragStart: (d) => _startResize(block, true, d.globalPosition.dy),
+              onVerticalDragUpdate: (d) => _updateResize(d.delta.dy),
+              onVerticalDragEnd: (_) => _commitResize(block),
+              child: _ResizeHandle(top: true),
+            ),
+          ),
+          // Bottom resize handle
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 12,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragStart: (d) => _startResize(block, false, d.globalPosition.dy),
+              onVerticalDragUpdate: (d) => _updateResize(d.delta.dy),
+              onVerticalDragEnd: (_) => _commitResize(block),
+              child: _ResizeHandle(top: false),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _handleDrop(DragTargetDetails<Block> details) {
-    final renderBox =
-        _gridKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
+  // ── Resize helpers ───────────────────────────────────────────────────────
 
-    final localY = renderBox.globalToLocal(details.offset).dy;
-    final rawMinutes = (localY / DayView.hourHeight * 60).round();
-    final snappedMinutes = ((rawMinutes / 15).round() * 15).clamp(0, 23 * 60);
+  void _startResize(Block block, bool top, double startY) {
+    setState(() {
+      _resizingBlock = block;
+      _resizingTop = top;
+      _resizeOrigStart = block.startTime!;
+      _resizeOrigEnd = block.endTime!;
+      _resizeTotalDelta = 0;
+    });
+  }
 
-    final block = details.data;
-    final duration = block.endTime!.difference(block.startTime!);
-    final newStart = DateTime(
-      widget.date.year,
-      widget.date.month,
-      widget.date.day,
-      snappedMinutes ~/ 60,
-      snappedMinutes % 60,
-    );
-    final newEnd = newStart.add(duration);
+  void _updateResize(double dy) {
+    setState(() => _resizeTotalDelta += dy);
+  }
+
+  void _commitResize(Block block) {
+    if (_resizingBlock == null) return;
+
+    final deltaMin =
+        (_resizeTotalDelta / DayView.hourHeight * 60).round();
+    final snapped = (deltaMin / 15).round() * 15;
+
+    DateTime newStart = _resizeOrigStart;
+    DateTime newEnd = _resizeOrigEnd;
+
+    if (_resizingTop) {
+      final candidate =
+          _resizeOrigStart.add(Duration(minutes: snapped));
+      if (candidate
+          .isBefore(newEnd.subtract(const Duration(minutes: 15)))) {
+        newStart = candidate;
+      }
+    } else {
+      final candidate =
+          _resizeOrigEnd.add(Duration(minutes: snapped));
+      if (candidate
+          .isAfter(newStart.add(const Duration(minutes: 15)))) {
+        newEnd = candidate;
+      }
+    }
 
     ref
         .read(databaseProvider)
         .blocksDao
         .updateBlockTimes(block.id, newStart, newEnd);
+
+    setState(() {
+      _resizingBlock = null;
+      _resizeTotalDelta = 0;
+    });
+  }
+
+  // ── Drop handlers ────────────────────────────────────────────────────────
+
+  void _handleBlockMove(Block block, Offset globalOffset) {
+    final renderBox =
+        _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final localY = renderBox.globalToLocal(globalOffset).dy;
+    final rawMin = (localY / DayView.hourHeight * 60).round();
+    final snapped = ((rawMin / 15).round() * 15).clamp(0, 23 * 60);
+
+    final duration = block.endTime!.difference(block.startTime!);
+    final newStart = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      snapped ~/ 60,
+      snapped % 60,
+    );
+    ref
+        .read(databaseProvider)
+        .blocksDao
+        .updateBlockTimes(block.id, newStart, newStart.add(duration));
+  }
+
+  void _handleTemplateDrop(BlockTemplate template, Offset globalOffset) {
+    final renderBox =
+        _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final localY = renderBox.globalToLocal(globalOffset).dy;
+    final rawMin = (localY / DayView.hourHeight * 60).round();
+    final snapped = ((rawMin / 15).round() * 15).clamp(0, 22 * 60);
+
+    final newStart = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      snapped ~/ 60,
+      snapped % 60,
+    );
+    final newEnd = newStart.add(const Duration(hours: 1));
+
+    ref.read(databaseProvider).blocksDao.insertBlock(
+          BlocksCompanion.insert(
+            blockTemplateId: template.id,
+            startTime: Value(newStart),
+            endTime: Value(newEnd),
+          ),
+        );
+  }
+}
+
+// ── Template palette bar ──────────────────────────────────────────────────────
+
+class _TemplatePaletteBar extends ConsumerWidget {
+  final AsyncValue<List<BlockTemplate>> templatesAsync;
+  final DateTime date;
+
+  const _TemplatePaletteBar(
+      {required this.templatesAsync, required this.date});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      height: 72,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+            top: BorderSide(color: Colors.grey[200]!, width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: templatesAsync.when(
+        data: (templates) => templates.isEmpty
+            ? Center(
+                child: TextButton.icon(
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('템플릿 추가'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const BlockTemplateEditScreen(),
+                    ),
+                  ),
+                ),
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      itemCount: templates.length,
+                      separatorBuilder: (_, i) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (_, i) =>
+                          _TemplateDraggableChip(template: templates[i]),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 22),
+                    tooltip: '템플릿 추가',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const BlockTemplateEditScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+        loading: () =>
+            const Center(child: LinearProgressIndicator()),
+        error: (e, _) => Center(child: Text('오류: $e')),
+      ),
+    );
+  }
+}
+
+class _TemplateDraggableChip extends StatelessWidget {
+  final BlockTemplate template;
+  const _TemplateDraggableChip({required this.template});
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = _TemplateChip(template: template);
+    return LongPressDraggable<BlockTemplate>(
+      data: template,
+      delay: const Duration(milliseconds: 300),
+      feedback: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(20),
+        child: chip,
+      ),
+      childWhenDragging: Opacity(opacity: 0.4, child: chip),
+      child: GestureDetector(
+        onLongPress: () {},
+        child: chip,
+      ),
+    );
+  }
+}
+
+class _TemplateChip extends StatelessWidget {
+  final BlockTemplate template;
+  const _TemplateChip({required this.template});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(template.color);
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        template.title,
+        style: TextStyle(
+          color: color.computeLuminance() > 0.5
+              ? Colors.black87
+              : Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Resize handle visual ──────────────────────────────────────────────────────
+
+class _ResizeHandle extends StatelessWidget {
+  final bool top;
+  const _ResizeHandle({required this.top});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: top ? Alignment.topCenter : Alignment.bottomCenter,
+      child: Container(
+        width: 32,
+        height: 4,
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
   }
 }
