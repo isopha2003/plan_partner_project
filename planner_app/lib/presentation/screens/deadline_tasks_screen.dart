@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planner_app/data/database/app_database.dart';
@@ -193,6 +194,13 @@ class _TaskTile extends ConsumerWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (!task.isCompleted)
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward,
+                      color: Colors.indigo, size: 20),
+                  tooltip: '타임블록으로 변환',
+                  onPressed: () => _convertToBlock(context, ref),
+                ),
               IconButton(
                 icon: Icon(Icons.delete_outline,
                     color: Colors.red.shade300, size: 20),
@@ -213,6 +221,66 @@ class _TaskTile extends ConsumerWidget {
           .updateTask(task.copyWith(isCompleted: false));
     } else {
       db.deadlineTasksDao.completeTask(task.id);
+    }
+  }
+
+  Future<void> _convertToBlock(BuildContext context, WidgetRef ref) async {
+    // Pick a date (default: task's deadline)
+    final date = await showDatePicker(
+      context: context,
+      initialDate: task.deadlineDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime(2100),
+    );
+    if (date == null || !context.mounted) return;
+
+    // Pick start time
+    final timeOfDay = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (timeOfDay == null || !context.mounted) return;
+
+    final db = ref.read(databaseProvider);
+
+    // Find or create a BlockTemplate matching the task title
+    BlockTemplate? tmpl =
+        await db.blockTemplatesDao.getTemplateByTitle(task.title);
+    if (tmpl == null) {
+      const defaultColor = 0xFF2196F3; // Material blue
+      final newId = await db.blockTemplatesDao.insertTemplate(
+        BlockTemplatesCompanion.insert(
+            title: task.title, color: defaultColor),
+      );
+      tmpl = await db.blockTemplatesDao.getTemplateById(newId);
+    }
+    if (tmpl == null) return;
+
+    final start = DateTime(
+        date.year, date.month, date.day, timeOfDay.hour, timeOfDay.minute);
+    final end = start.add(const Duration(hours: 1));
+
+    await db.blocksDao.insertBlock(
+      BlocksCompanion.insert(
+        blockTemplateId: tmpl.id,
+        startTime: Value(start),
+        endTime: Value(end),
+        memo: Value('마감: ${_fmtDate(task.deadlineDate)}'),
+      ),
+    );
+
+    // Mark deadline task as completed after conversion
+    await db.deadlineTasksDao.completeTask(task.id);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '"${task.title}" 블록이 '
+            '${date.year}.${date.month}.${date.day} ${timeOfDay.format(context)}에 추가되었습니다.',
+          ),
+        ),
+      );
     }
   }
 
