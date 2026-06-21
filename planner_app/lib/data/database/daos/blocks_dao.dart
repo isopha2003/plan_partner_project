@@ -82,6 +82,21 @@ class BlocksDao extends DatabaseAccessor<AppDatabase> with _$BlocksDaoMixin {
         ),
       );
 
+  /// Updates times + memo (used by block edit screen).
+  Future<int> updateBlockDetails(
+    int id, {
+    required DateTime start,
+    required DateTime end,
+    String? memo,
+  }) =>
+      (update(blocks)..where((b) => b.id.equals(id))).write(
+        BlocksCompanion(
+          startTime: Value(start),
+          endTime: Value(end),
+          memo: Value(memo),
+        ),
+      );
+
   /// Updates nextBlockId (habit stacking).
   Future<int> setNextBlock(int id, int? nextId) =>
       (update(blocks)..where((b) => b.id.equals(id))).write(

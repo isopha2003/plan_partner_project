@@ -38,6 +38,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
   late DateTime _start;
   late DateTime _end;
   RecurrenceRulesCompanion? _pendingRecurrence;
+  late TextEditingController _memoController;
 
   bool get _isEditing => widget.block != null;
 
@@ -50,6 +51,14 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
     final defaultStart = DateTime(base.year, base.month, base.day, 9, 0);
     _start = widget.block?.startTime ?? defaultStart;
     _end = widget.block?.endTime ?? defaultStart.add(const Duration(hours: 1));
+    _memoController =
+        TextEditingController(text: widget.block?.memo ?? '');
+  }
+
+  @override
+  void dispose() {
+    _memoController.dispose();
+    super.dispose();
   }
 
   @override
@@ -138,6 +147,21 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
               onTap: _openRecurrenceEdit,
             ),
           ],
+
+          // Memo
+          const SizedBox(height: 20),
+          _SectionLabel('메모'),
+          TextField(
+            controller: _memoController,
+            maxLines: 3,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              hintText: '블록에 대한 메모를 남겨 두세요',
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
         ],
       ),
     );
@@ -179,8 +203,12 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
     }
 
     final db = ref.read(databaseProvider);
+    final memo =
+        _memoController.text.trim().isEmpty ? null : _memoController.text.trim();
+
     if (_isEditing) {
-      await db.blocksDao.updateBlockTimes(widget.block!.id, _start, _end);
+      await db.blocksDao.updateBlockDetails(
+          widget.block!.id, start: _start, end: _end, memo: memo);
     } else {
       // Insert recurrence rule first if configured
       int? ruleId;
@@ -196,6 +224,7 @@ class _BlockEditScreenState extends ConsumerState<BlockEditScreen> {
           endTime: Value(_end),
           parentId: Value(widget.parentId),
           recurrenceRuleId: Value(ruleId),
+          memo: Value(memo),
         ),
       );
 
