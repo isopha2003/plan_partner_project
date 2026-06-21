@@ -40,30 +40,33 @@ class _DayViewContent extends ConsumerWidget {
     final overlaps = findOverlaps(pairs);
     final templatesAsync = ref.watch(blockTemplatesProvider);
 
-    return Column(
+    return Stack(
       children: [
-        if (overlaps.isNotEmpty)
-          OverlapWarningBanner(overlappingPairs: overlaps),
-        Expanded(
-          child: SingleChildScrollView(
-            child: SizedBox(
-              height: DayView.hourHeight * 24 + 16,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TimeLabels(),
-                  const VerticalDivider(width: 1, thickness: 1),
-                  Expanded(
-                      child: _TimelineGrid(date: date, pairs: pairs)),
-                ],
+        // Timeline (full height — palette sheet overlays at bottom)
+        Column(
+          children: [
+            if (overlaps.isNotEmpty)
+              OverlapWarningBanner(overlappingPairs: overlaps),
+            Expanded(
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  height: DayView.hourHeight * 24 + 16,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _TimeLabels(),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      Expanded(
+                          child: _TimelineGrid(date: date, pairs: pairs)),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-        _TemplatePaletteBar(
-          templatesAsync: templatesAsync,
-          date: date,
-        ),
+        // Expandable template palette sheet
+        _TemplatePaletteSheet(templatesAsync: templatesAsync),
       ],
     );
   }
@@ -378,77 +381,127 @@ class _TimelineGridState extends ConsumerState<_TimelineGrid> {
   }
 }
 
-// ── Template palette bar ──────────────────────────────────────────────────────
+// ── Template palette sheet (expandable) ──────────────────────────────────────
 
-class _TemplatePaletteBar extends ConsumerWidget {
+/// Collapsed height fraction: drag handle (24px) + chip row (40px) + padding (20px)
+/// ≈ 84px. On an 800px screen that is ~0.105; use 0.13 for breathing room.
+const double _kCollapsedSize = 0.13;
+const double _kExpandedSize = 0.45;
+
+class _TemplatePaletteSheet extends StatelessWidget {
   final AsyncValue<List<BlockTemplate>> templatesAsync;
-  final DateTime date;
 
-  const _TemplatePaletteBar(
-      {required this.templatesAsync, required this.date});
+  const _TemplatePaletteSheet({required this.templatesAsync});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      height: 72,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-            top: BorderSide(color: Colors.grey[200]!, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
+  Widget build(BuildContext context) {
+    final surface = Theme.of(context).colorScheme.surface;
+
+    return DraggableScrollableSheet(
+      initialChildSize: _kCollapsedSize,
+      minChildSize: _kCollapsedSize,
+      maxChildSize: _kExpandedSize,
+      snap: true,
+      snapSizes: const [_kCollapsedSize, _kExpandedSize],
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, -3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: templatesAsync.when(
-        data: (templates) => templates.isEmpty
-            ? Center(
-                child: TextButton.icon(
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('템플릿 추가'),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const BlockTemplateEditScreen(),
+          child: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              // Drag handle + header row
+              SliverToBoxAdapter(
+                child: _PaletteHeader(templatesAsync: templatesAsync),
+              ),
+              // Template chips grid (Wrap → natural row wrap)
+              SliverToBoxAdapter(
+                child: templatesAsync.when(
+                  data: (templates) => Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: templates
+                          .map((t) => _TemplateDraggableChip(template: t))
+                          .toList(),
                     ),
+                  ),
+                  loading: () => const SizedBox(
+                    height: 40,
+                    child: Center(child: LinearProgressIndicator()),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text('오류: $e'),
                   ),
                 ),
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      itemCount: templates.length,
-                      separatorBuilder: (_, i) =>
-                          const SizedBox(width: 8),
-                      itemBuilder: (_, i) =>
-                          _TemplateDraggableChip(template: templates[i]),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 22),
-                    tooltip: '템플릿 추가',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const BlockTemplateEditScreen(),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-        loading: () =>
-            const Center(child: LinearProgressIndicator()),
-        error: (e, _) => Center(child: Text('오류: $e')),
-      ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PaletteHeader extends StatelessWidget {
+  final AsyncValue<List<BlockTemplate>> templatesAsync;
+  const _PaletteHeader({required this.templatesAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Drag handle indicator
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        // Title + add button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 4, 8),
+          child: Row(
+            children: [
+              Text(
+                '템플릿',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(color: Colors.grey[600]),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 22),
+                tooltip: '템플릿 추가',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BlockTemplateEditScreen(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -469,8 +522,14 @@ class _TemplateDraggableChip extends StatelessWidget {
         child: chip,
       ),
       childWhenDragging: Opacity(opacity: 0.4, child: chip),
+      // Tap opens the template editor; long-press starts the drag.
       child: GestureDetector(
-        onLongPress: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BlockTemplateEditScreen(template: template),
+          ),
+        ),
         child: chip,
       ),
     );
