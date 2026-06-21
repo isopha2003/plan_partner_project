@@ -6,6 +6,16 @@ import 'package:planner_app/domain/services/stats_calculator.dart';
 import 'package:planner_app/main.dart';
 import 'package:planner_app/presentation/providers/blocks_provider.dart';
 
+// Reactive today's mood provider
+final _moodTodayProvider = StreamProvider<MoodLog?>((ref) {
+  final today = DateTime.now();
+  final key =
+      '${today.year.toString().padLeft(4, '0')}-'
+      '${today.month.toString().padLeft(2, '0')}-'
+      '${today.day.toString().padLeft(2, '0')}';
+  return ref.watch(databaseProvider).moodLogsDao.watchMoodLogByDate(key);
+});
+
 /// Statistics screen — built up incrementally:
 ///   Task 3: 출석 잔디 뷰 (_GrassSection)
 ///   Task 4: 오늘의 통계 (_TodayStatsSection)
@@ -19,12 +29,103 @@ class StatsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('통계')),
       body: ListView(
         children: const [
+          _MoodSection(),
+          Divider(height: 32),
           _GrassSection(),
           Divider(height: 32),
           _TodayStatsSection(),
           Divider(height: 32),
           _UnfinishedSection(),
           SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Mood section ─────────────────────────────────────────────────────────────
+
+class _MoodSection extends ConsumerWidget {
+  const _MoodSection();
+
+  static const _emojis = ['😄', '😊', '😐', '😢', '😡'];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final moodAsync = ref.watch(_moodTodayProvider);
+    final today = DateTime.now();
+    final dateKey =
+        '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '오늘의 기분',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          moodAsync.when(
+            loading: () => const SizedBox(
+                height: 48,
+                child: Center(child: CircularProgressIndicator())),
+            error: (e, _) => Text('오류: $e'),
+            data: (log) => Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: _emojis.map((emoji) {
+                final selected = log?.emoji == emoji;
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(databaseProvider).moodLogsDao.upsertMoodLog(
+                          MoodLogsCompanion.insert(
+                            date: dateKey,
+                            emoji: emoji,
+                          ),
+                        );
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: selected
+                          ? Border.all(
+                              color:
+                                  Theme.of(context).colorScheme.primary,
+                              width: 2)
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(emoji,
+                          style: const TextStyle(fontSize: 26)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          if (moodAsync.asData?.value != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '오늘 선택한 기분: ${moodAsync.asData!.value!.emoji}',
+                style:
+                    TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ),
         ],
       ),
     );

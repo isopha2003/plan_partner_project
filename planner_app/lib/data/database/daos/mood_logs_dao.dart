@@ -19,5 +19,9 @@ class MoodLogsDao extends DatabaseAccessor<AppDatabase>
   Future<MoodLog?> getMoodLogByDate(String date) =>
       (select(moodLogs)..where((m) => m.date.equals(date))).getSingleOrNull();
 
+  Stream<MoodLog?> watchMoodLogByDate(String date) =>
+      (select(moodLogs)..where((m) => m.date.equals(date)))
+          .watchSingleOrNull();
+
   Future<List<MoodLog>> getAllMoodLogs() => select(moodLogs).get();
 }
